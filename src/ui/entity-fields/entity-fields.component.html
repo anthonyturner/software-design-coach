@@ -1,0 +1,33 @@
+<div
+  class="entities"
+  role="group"
+  [attr.aria-labelledby]="view().promptId"
+  [attr.aria-describedby]="question().hint ? view().hintId : null"
+>
+  <p class="field__label" [id]="view().promptId">{{ question().prompt }}</p>
+  @if (question().hint; as hint) {
+    <p class="field__hint" [id]="view().hintId">{{ hint }}</p>
+  }
+
+  @if (view().rows.length === 0) {
+    <p class="entities__empty">{{ view().emptyText }}</p>
+  } @else if (view().field; as field) {
+    <ul class="entities__list">
+      @for (row of view().rows; track row.id) {
+        <li class="entity">
+          <fieldset class="entity__group">
+            <legend class="entity__legend">{{ row.label }}</legend>
+            <sdc-entity-field
+              [entities]="entities()"
+              [kind]="view().kind"
+              [row]="row.entity"
+              [field]="field"
+              [idBase]="view().idBase"
+              (edited)="edit(row.id, $event)"
+            />
+          </fieldset>
+        </li>
+      }
+    </ul>
+  }
+</div>

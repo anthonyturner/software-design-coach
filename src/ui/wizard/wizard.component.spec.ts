@@ -125,6 +125,15 @@ describe('WizardComponent', () => {
     await click(box);
   }
 
+  const buttonsIn = (scope: HTMLElement): (string | undefined)[] =>
+    Array.from(scope.querySelectorAll('button')).map((button) => button.textContent?.trim());
+
+  const chosenRadio = (page: HTMLElement): string | undefined =>
+    radios(page).find((option) => option.checked)?.closest('label')?.textContent?.trim();
+
+  const legends = (page: HTMLElement): (string | undefined)[] =>
+    Array.from(page.querySelectorAll('.entity__legend')).map((legend) => legend.textContent?.trim());
+
   const stepTitle = (page: HTMLElement): string | undefined => page.querySelector('.step__title')?.textContent?.trim();
 
   beforeEach(async () => {
@@ -178,7 +187,7 @@ describe('WizardComponent', () => {
     await press(page, 'Continue');
 
     expect(stepTitle(page)).toBe('Users');
-    expect(page.textContent).toContain('Step 2 of 9');
+    expect(page.textContent).toContain('Step 2 of 19');
 
     await press(page, 'Add actor');
     await type(page, 'Role', 'Receptionist');
@@ -211,7 +220,7 @@ describe('WizardComponent', () => {
       await press(page, 'Continue');
     }
 
-    expect(stepTitle(page)).toBe('Modules');
+    expect(stepTitle(page)).toBe('Design Review');
     expect(navButtons(page)).toEqual(['Back']);
   });
 
@@ -235,13 +244,14 @@ describe('WizardComponent', () => {
   });
 
   describe('the journey rail', () => {
-    it('lists all nine steps in a labelled navigation, with the step you are on marked', async () => {
+    it('lists all nineteen steps in a labelled navigation, with the step you are on marked', async () => {
       const page = await open('p1');
 
       expect(page.querySelector('nav')?.getAttribute('aria-label')).toBe('Design journey');
-      expect(page.querySelectorAll('.rail__step')).toHaveLength(9);
+      expect(page.querySelectorAll('.rail__step')).toHaveLength(19);
       expect(railButton(page, 'Problem').getAttribute('aria-current')).toBe('step');
       expect(railState(page, 'Modules')).toBe(', not started');
+      expect(railState(page, 'Design Review')).toBe(', not started');
     });
 
     it('goes to any step when clicked, in any order, and brings the answers with it', async () => {
@@ -250,7 +260,7 @@ describe('WizardComponent', () => {
 
       await goTo(page, 'Modules');
       expect(stepTitle(page)).toBe('Modules');
-      expect(page.textContent).toContain('Step 9 of 9');
+      expect(page.textContent).toContain('Step 9 of 19');
       expect(railButton(page, 'Modules').getAttribute('aria-current')).toBe('step');
       expect(railButton(page, 'Problem').getAttribute('aria-current')).toBeNull();
 
@@ -422,6 +432,295 @@ describe('WizardComponent', () => {
       await goTo(reloaded, 'Users');
 
       expect(rows(reloaded).map((row) => fieldLabelled(row, 'Role').value)).toEqual(['Receptionist', 'Patient']);
+    });
+  });
+
+  describe('module details', () => {
+    const labelsIn = (scope: HTMLElement): (string | undefined)[] =>
+      Array.from(scope.querySelectorAll('label')).map((label) => label.textContent?.trim());
+
+    async function twoModules(page: HTMLElement): Promise<void> {
+      await goTo(page, 'Modules');
+      await press(page, 'Add module');
+      await type(rows(page)[0], 'Module', 'Reminders');
+      await press(page, 'Add module');
+      await type(rows(page)[1], 'Module', 'Messaging');
+    }
+
+    it('asks only for a name and a purpose when the modules are listed', async () => {
+      const page = await open('p1');
+      await twoModules(page);
+
+      expect(labelsIn(rows(page)[0])).toEqual(['Module', 'What does it own, in one sentence?']);
+    });
+
+    it('shows each module as its own group on a step about one thing it has, with nothing else to edit', async () => {
+      const page = await open('p1');
+      await twoModules(page);
+
+      await goTo(page, 'Responsibilities');
+
+      expect(legends(page)).toEqual(['Reminders', 'Messaging']);
+      expect(labelsIn(rows(page)[0])).toEqual(['What is it responsible for?']);
+      expect(page.querySelector('.entities__add')).toBeNull();
+      expect(buttonsIn(rows(page)[0])).toEqual([]);
+    });
+
+    it('says where to find the modules when none are listed yet', async () => {
+      const page = await open('p1');
+
+      await goTo(page, 'Responsibilities');
+
+      expect(page.querySelector('.entities__empty')?.textContent).toContain('No modules listed yet');
+    });
+
+    it('keeps responsibilities one to a line, and brings them back after a reload', async () => {
+      const page = await open('p1');
+      await twoModules(page);
+      await goTo(page, 'Responsibilities');
+
+      await type(rows(page)[0], 'What is it responsible for?', 'Decide when one is due\n\nWord it\n');
+      const reloaded = await reload('p1');
+
+      expect(fieldLabelled(rows(reloaded)[0], 'What is it responsible for?').value).toBe('Decide when one is due\nWord it');
+      expect(fieldLabelled(rows(reloaded)[1], 'What is it responsible for?').value).toBe('');
+    });
+
+    it('keeps what a module hides, and the sketch of its interface, with that module', async () => {
+      const page = await open('p1');
+      await twoModules(page);
+      await goTo(page, 'Information Hiding');
+      await type(rows(page)[1], 'What does it know', 'Which provider, and its message format');
+      await goTo(page, 'Interfaces');
+      await type(rows(page)[1], 'What does a caller need', 'send(patient, message)');
+
+      await goTo(page, 'Information Hiding');
+      expect(fieldLabelled(rows(page)[0], 'What does it know').value).toBe('');
+      expect(fieldLabelled(rows(page)[1], 'What does it know').value).toBe('Which provider, and its message format');
+      await goTo(page, 'Interfaces');
+      expect(fieldLabelled(rows(page)[1], 'What does a caller need').value).toBe('send(patient, message)');
+    });
+
+    it('offers the other modules as dependencies, never the module itself', async () => {
+      const page = await open('p1');
+      await twoModules(page);
+
+      await goTo(page, 'Dependencies');
+
+      expect(references(rows(page)[0])).toEqual([{ label: 'Messaging', checked: false }]);
+      expect(references(rows(page)[1])).toEqual([{ label: 'Reminders', checked: false }]);
+    });
+
+    it('keeps a dependency through a rename, and drops it when the module is removed', async () => {
+      const page = await open('p1');
+      await twoModules(page);
+      await goTo(page, 'Dependencies');
+      await pickReference(rows(page)[0], 'Messaging');
+
+      await goTo(page, 'Modules');
+      await type(rows(page)[1], 'Module', 'Texting');
+      await goTo(page, 'Dependencies');
+      expect(references(rows(page)[0])).toEqual([{ label: 'Texting', checked: true }]);
+      expect(railState(page, 'Dependencies')).toBe('');
+
+      await goTo(page, 'Modules');
+      await click(buttonLabelled(page, 'Remove Texting'));
+      await goTo(page, 'Dependencies');
+      expect(legends(page)).toEqual(['Reminders']);
+      expect(references(rows(page)[0])).toEqual([]);
+    });
+  });
+
+  describe('design it twice, then decide', () => {
+    async function option(page: HTMLElement, index: number, name: string): Promise<void> {
+      await press(page, 'Add architecture option');
+      await type(rows(page)[index], 'Option', name);
+    }
+
+    it('asks for an approach, strengths and costs for each option', async () => {
+      const page = await open('p1');
+      await goTo(page, 'Architecture Options');
+
+      await option(page, 0, 'Four modules');
+
+      expect([...rows(page)[0].querySelectorAll('label')].map((label) => label.textContent?.trim())).toEqual([
+        'Option',
+        'How does it work, in a few sentences?',
+        'What does it make easy?',
+        'What does it make hard, or cost?',
+      ]);
+    });
+
+    it('is not done with one option, and is done with two and a comparison', async () => {
+      const page = await open('p1');
+      await goTo(page, 'Architecture Options');
+      await option(page, 0, 'Four modules');
+      await type(page, 'How do they compare', 'The first hides more');
+
+      await goTo(page, 'Goals');
+      expect(railState(page, 'Architecture Options')).toBe(', in progress');
+
+      await goTo(page, 'Architecture Options');
+      await option(page, 1, 'One module');
+      await goTo(page, 'Goals');
+      expect(railState(page, 'Architecture Options')).toBe(', done');
+    });
+
+    it('offers the named options to choose from, and says so when there are none', async () => {
+      const page = await open('p1');
+      await goTo(page, 'Decision');
+      expect(radios(page)).toHaveLength(0);
+      expect(page.querySelector('.choice .field__hint')?.textContent).toContain('No architecture options named yet');
+
+      await goTo(page, 'Architecture Options');
+      await option(page, 0, 'Four modules');
+      await option(page, 1, 'One module');
+      await press(page, 'Add architecture option');
+      await goTo(page, 'Decision');
+
+      expect(radios(page).map((radio) => radio.closest('label')?.textContent?.trim())).toEqual([
+        'Four modules',
+        'One module',
+      ]);
+    });
+
+    it('remembers the choice through a rename and a reload, and forgets it when that option is removed', async () => {
+      const page = await open('p1');
+      await goTo(page, 'Architecture Options');
+      await option(page, 0, 'Four modules');
+      await option(page, 1, 'One module');
+      await goTo(page, 'Decision');
+      await click(radios(page)[1]);
+
+      await goTo(page, 'Architecture Options');
+      await type(rows(page)[1], 'Option', 'Single module');
+      const reloaded = await reload('p1');
+      await goTo(reloaded, 'Decision');
+      expect(chosenRadio(reloaded)).toBe('Single module');
+
+      await goTo(reloaded, 'Architecture Options');
+      await click(buttonLabelled(reloaded, 'Remove Single module'));
+      await goTo(reloaded, 'Decision');
+      expect(chosenRadio(reloaded)).toBeUndefined();
+      expect(radios(reloaded).map((radio) => radio.closest('label')?.textContent?.trim())).toEqual(['Four modules']);
+    });
+
+    it('offers the use cases for the first vertical slice', async () => {
+      const page = await open('p1');
+      await goTo(page, 'Use Cases');
+      await press(page, 'Add use case');
+      await type(rows(page)[0], 'Use case', 'Confirm an appointment');
+
+      await goTo(page, 'First Vertical Slice');
+      await click(radios(page)[0]);
+
+      expect(chosenRadio(page)).toBe('Confirm an appointment');
+    });
+  });
+
+  describe('the whole workflow', () => {
+    async function addRow(page: HTMLElement, noun: string, index: number, label: string, name: string): Promise<void> {
+      await press(page, `Add ${noun}`);
+      await type(rows(page)[index], label, name);
+    }
+
+    async function fill(page: HTMLElement, answers: readonly (readonly [string, string])[]): Promise<void> {
+      for (const [label, text] of answers) {
+        await type(page, label, text);
+      }
+    }
+
+    async function walk(page: HTMLElement): Promise<void> {
+      await fill(page, [
+        ['What problem are we solving', 'No-shows cost us chairs'],
+        ['Who feels it today', 'The desk'],
+        ['How will you know', 'Fewer empty chairs'],
+      ]);
+      await press(page, 'Continue');
+      await addRow(page, 'actor', 0, 'Role', 'Receptionist');
+      await press(page, 'Continue');
+      await fill(page, [
+        ['What must be true when this succeeds', 'Patients are reminded'],
+        ['For each goal, what would you observe', 'No reminder calls'],
+      ]);
+      await press(page, 'Continue');
+      await fill(page, [['What will this system deliberately not do', 'Online booking']]);
+      await press(page, 'Continue');
+      await fill(page, [['What must the system do', 'Send a text the day before']]);
+      await press(page, 'Continue');
+      await addRow(page, 'use case', 0, 'Use case', 'Confirm an appointment');
+      await press(page, 'Continue');
+      await addRow(page, 'concept', 0, 'Concept', 'Appointment');
+      await press(page, 'Continue');
+      await click(radios(page)[0]);
+      await fill(page, [['what is yours to build and own', 'Reminder rules']]);
+      await press(page, 'Continue');
+      await addRow(page, 'module', 0, 'Module', 'Reminders');
+      await addRow(page, 'module', 1, 'Module', 'Messaging');
+      await press(page, 'Continue');
+      await type(rows(page)[0], 'What is it responsible for?', 'Decide when one is due');
+      await press(page, 'Continue');
+      await type(rows(page)[1], 'What does it know', 'The provider and its formats');
+      await press(page, 'Continue');
+      await type(rows(page)[1], 'What does a caller need', 'send(patient, message)');
+      await press(page, 'Continue');
+      await pickReference(rows(page)[0], 'Messaging');
+      await press(page, 'Continue');
+      await addRow(page, 'architecture option', 0, 'Option', 'Four modules');
+      await addRow(page, 'architecture option', 1, 'Option', 'One module');
+      await fill(page, [['How do they compare', 'The first hides more']]);
+      await press(page, 'Continue');
+      await click(radios(page)[0]);
+      await fill(page, [['Why this one', 'Different reasons to change']]);
+      await press(page, 'Continue');
+      await click(radios(page)[0]);
+      await fill(page, [
+        ['Trace it through the modules', 'Reminders asks Messaging to send'],
+        ['What will you know after building it', 'Whether the provider can be hidden'],
+      ]);
+      await press(page, 'Continue');
+      await fill(page, [
+        ['What behaviours must the first slice show', 'A reminder is sent a day before'],
+        ['first test you will write', 'dueReminders returns one reminder'],
+      ]);
+      await press(page, 'Continue');
+      await fill(page, [['What are the steps, in order', 'Reminders first, with a fake schedule']]);
+      await press(page, 'Continue');
+      await fill(page, [
+        ['least sure about', 'Reminders may do too much'],
+        ['biggest risks', 'The provider reply format'],
+      ]);
+      await click(radios(page)[1]);
+    }
+
+    it('can be completed from the first step to the last, every step ending up done', async () => {
+      const page = await open('p1');
+
+      await walk(page);
+
+      expect(stepTitle(page)).toBe('Design Review');
+      expect(page.textContent).toContain('Step 19 of 19');
+      expect(navButtons(page)).toEqual(['Back']);
+      const states = [...page.querySelectorAll('.rail__step')].map(
+        (step) => step.querySelector('.rail__state')?.textContent ?? '',
+      );
+      expect(states).toHaveLength(19);
+      expect(states.slice(0, 18).every((state) => state === ', done')).toBe(true);
+      expect(page.querySelector('.step__status')?.textContent).toBe('Every required question on this step is answered.');
+    });
+
+    it('is all still there after a reload', async () => {
+      const page = await open('p1');
+      await walk(page);
+
+      const reloaded = await reload('p1');
+
+      expect(stepTitle(reloaded)).toBe('Design Review');
+      expect(chosenRadio(reloaded)).toContain('with the risks above');
+      await goTo(reloaded, 'Dependencies');
+      expect(references(rows(reloaded)[0])).toEqual([{ label: 'Messaging', checked: true }]);
+      await goTo(reloaded, 'Decision');
+      expect(chosenRadio(reloaded)).toBe('Four modules');
     });
   });
 });

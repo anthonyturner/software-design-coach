@@ -10,6 +10,7 @@ import type { AnswerValue, ChoiceQuestion } from '../../domain';
 export class ChoiceFieldComponent {
   readonly question = input.required<ChoiceQuestion>();
   readonly value = input<AnswerValue | undefined>();
+  readonly emptyText = input<string>();
   readonly answered = output<string>();
 
   protected readonly groupId = computed(() => `answer-${this.question().id}`);

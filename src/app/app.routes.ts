@@ -9,5 +9,9 @@ export const routes: Routes = [
     path: 'projects/:id',
     loadComponent: () => import('../ui/wizard/wizard.component').then((module) => module.WizardComponent),
   },
+  {
+    path: 'projects/:id/summary',
+    loadComponent: () => import('../ui/summary/summary.component').then((module) => module.SummaryComponent),
+  },
   { path: '**', redirectTo: '' },
 ];

@@ -309,4 +309,42 @@ describe('DiagramPanelComponent', () => {
       expect(text('[role="alert"]')).toContain('could not be drawn');
     });
   });
+
+  describe('as one of several on a page', () => {
+    function second(): ComponentFixture<DiagramPanelComponent> {
+      const other = TestBed.createComponent(DiagramPanelComponent);
+      other.componentRef.setInput('kind', 'dependency');
+      other.componentRef.setInput('source', undefined);
+      other.detectChanges();
+      return other;
+    }
+
+    it('is titled Visualize by a level 3 heading unless told otherwise', () => {
+      show('module', undefined);
+
+      expect(page().querySelector('h3')?.textContent).toBe('Visualize');
+    });
+
+    it('takes the wording and the level of its heading from where it is placed', () => {
+      fixture.componentRef.setInput('heading', 'Diagram');
+      fixture.componentRef.setInput('headingLevel', 4);
+      show('module', undefined);
+
+      expect(page().querySelector('h4')?.textContent).toBe('Diagram');
+      expect(page().querySelector('h3')).toBeNull();
+    });
+
+    it('names its region by its own heading, so two panels never share an id', () => {
+      show('module', undefined);
+      const other = second();
+      const region = (found: HTMLElement): HTMLElement | null => found.querySelector('section');
+      const heading = (found: HTMLElement): HTMLElement | null => found.querySelector('.diagram__label');
+
+      expect(region(page())?.getAttribute('aria-labelledby')).toBe(heading(page())?.id);
+      expect(region(other.nativeElement as HTMLElement)?.getAttribute('aria-labelledby')).toBe(
+        heading(other.nativeElement as HTMLElement)?.id,
+      );
+      expect(heading(page())?.id).not.toBe(heading(other.nativeElement as HTMLElement)?.id);
+    });
+  });
 });

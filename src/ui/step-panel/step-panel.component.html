@@ -65,6 +65,7 @@
   <section class="step__section" aria-labelledby="step-continue">
     <h4 class="step__label" id="step-continue">Continue</h4>
     <p class="step__status">{{ status() }}</p>
+    <sdc-note-field [stepId]="step().id" [value]="note()" (changed)="noted.emit($event)" />
     <div class="step__nav">
       @if (canGoBack()) {
         <button type="button" class="button" (click)="back.emit()">Back</button>

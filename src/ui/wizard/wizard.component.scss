@@ -20,6 +20,11 @@
     font-size: var(--sdc-font-size-2xl);
   }
 
+  &__summary {
+    justify-self: start;
+    text-decoration: none;
+  }
+
   &__mode {
     color: var(--sdc-color-text-muted);
     letter-spacing: var(--sdc-letter-spacing-caps);
@@ -67,10 +72,5 @@
       max-height: none;
       overflow-y: visible;
     }
-  }
-
-  &__message {
-    max-width: 65ch;
-    color: var(--sdc-color-text-muted);
   }
 }

@@ -1,0 +1,10 @@
+@let v = value();
+@if (v.kind === 'text') {
+  <p class="value__text">{{ v.text }}</p>
+} @else {
+  <ul class="value__list">
+    @for (item of v.items; track $index) {
+      <li>{{ item }}</li>
+    }
+  </ul>
+}

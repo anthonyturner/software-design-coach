@@ -50,3 +50,22 @@
     padding: var(--sdc-space-7) var(--sdc-space-5);
   }
 }
+
+// The skip link and the header are for moving around the app; the page itself is what gets printed.
+@media print {
+  :host {
+    min-height: 0;
+  }
+
+  .shell {
+    &__skip-link,
+    &__header {
+      display: none;
+    }
+
+    &__main {
+      max-width: none;
+      padding: 0;
+    }
+  }
+}

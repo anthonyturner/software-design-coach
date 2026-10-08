@@ -16,6 +16,7 @@ import { AnswerFieldComponent } from '../answer-field/answer-field.component';
 import { ChoiceFieldComponent } from '../choice-field/choice-field.component';
 import { EntityFieldsComponent } from '../entity-fields/entity-fields.component';
 import { EntityListComponent } from '../entity-list/entity-list.component';
+import { NoteFieldComponent } from '../note-field/note-field.component';
 
 type Field =
   | { readonly type: 'entities'; readonly key: string; readonly question: EntityListQuestion }
@@ -36,7 +37,7 @@ type Field =
 
 @Component({
   selector: 'sdc-step-panel',
-  imports: [AnswerFieldComponent, ChoiceFieldComponent, EntityFieldsComponent, EntityListComponent],
+  imports: [AnswerFieldComponent, ChoiceFieldComponent, EntityFieldsComponent, EntityListComponent, NoteFieldComponent],
   templateUrl: './step-panel.component.html',
   styleUrl: './step-panel.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -45,12 +46,14 @@ export class StepPanelComponent {
   readonly step = input.required<Step>();
   readonly answers = input.required<StepAnswers>();
   readonly entities = input.required<ProjectEntities>();
+  readonly note = input.required<string>();
   readonly stepNumber = input.required<number>();
   readonly stepCount = input.required<number>();
   readonly openCount = input.required<number>();
   readonly canGoBack = input.required<boolean>();
   readonly canContinue = input.required<boolean>();
 
+  readonly noted = output<string>();
   readonly answered = output<{ readonly questionId: string; readonly value: AnswerValue }>();
   readonly entityChanged = output<{ readonly entity: EntityKind; readonly change: EntityChange }>();
   readonly back = output<void>();

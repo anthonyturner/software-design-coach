@@ -1,0 +1,17 @@
+:host {
+  display: block;
+}
+
+.value {
+  &__text {
+    overflow-wrap: anywhere;
+    white-space: pre-line;
+  }
+
+  &__list {
+    margin: 0;
+    padding-left: var(--sdc-space-5);
+    list-style: disc;
+    overflow-wrap: anywhere;
+  }
+}

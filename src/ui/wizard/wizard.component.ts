@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, signal, untracked, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ProjectStore } from '../../app/project-store';
-import { adjacentSteps, diagramFor, moduleDetails, moduleNodes, stepAnswers } from '../../domain';
+import { adjacentSteps, diagramFor, moduleDetails, moduleNodes, noteFor, stepAnswers } from '../../domain';
 import type { AnswerValue, DiagramKind, ModuleNode, Project } from '../../domain';
 import { DiagramPanelComponent } from '../diagram-panel/diagram-panel.component';
 import { JourneyRailComponent } from '../journey-rail/journey-rail.component';
 import { ModuleDrawerComponent } from '../module-drawer/module-drawer.component';
+import { OpenStateMessageComponent } from '../open-state-message/open-state-message.component';
 import { StepPanelComponent } from '../step-panel/step-panel.component';
 import { StorageNoticeComponent } from '../storage-notice/storage-notice.component';
 
@@ -24,7 +25,15 @@ function diagramView(project: Project, kind: DiagramKind): DiagramView {
 
 @Component({
   selector: 'sdc-wizard',
-  imports: [DiagramPanelComponent, JourneyRailComponent, ModuleDrawerComponent, RouterLink, StepPanelComponent, StorageNoticeComponent],
+  imports: [
+    DiagramPanelComponent,
+    JourneyRailComponent,
+    ModuleDrawerComponent,
+    OpenStateMessageComponent,
+    RouterLink,
+    StepPanelComponent,
+    StorageNoticeComponent,
+  ],
   templateUrl: './wizard.component.html',
   styleUrl: './wizard.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -48,6 +57,7 @@ export class WizardComponent {
       workflowTitle: workflow.title,
       step,
       answers: stepAnswers(project, step.id),
+      note: noteFor(project, step.id),
       entities: project.entities,
       diagram: step.diagram && diagramView(project, step.diagram),
       stepNumber: workflow.steps.indexOf(step) + 1,

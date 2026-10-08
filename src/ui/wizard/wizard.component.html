@@ -6,6 +6,7 @@
       <header class="wizard__header">
         <h2 class="wizard__title">{{ v.projectName }}</h2>
         <p class="wizard__mode">{{ v.workflowTitle }}</p>
+        <a class="wizard__summary button button--small" [routerLink]="['/projects', id(), 'summary']">View summary</a>
       </header>
       <div class="wizard__layout" [class.wizard__layout--diagram]="v.diagram !== undefined">
         <sdc-journey-rail class="wizard__rail" [stops]="store.journey()" (selected)="goTo($event)" />
@@ -13,12 +14,14 @@
           [step]="v.step"
           [answers]="v.answers"
           [entities]="v.entities"
+          [note]="v.note"
           [stepNumber]="v.stepNumber"
           [stepCount]="v.stepCount"
           [openCount]="store.openQuestionCount()"
           [canGoBack]="v.previousId !== undefined"
           [canContinue]="v.nextId !== undefined"
           (answered)="answer($event)"
+          (noted)="store.setNote(v.step.id, $event)"
           (entityChanged)="store.changeEntities($event.entity, $event.change)"
           (back)="goTo(v.previousId)"
           (next)="goTo(v.nextId)"
@@ -39,20 +42,8 @@
       </div>
     }
   }
-  @case ('not-found') {
-    <p class="wizard__message">
-      This project is not in this browser. Projects live in the browser that created them, so it may have been
-      cleared or made somewhere else.
-    </p>
-  }
-  @case ('unreadable') {
-    <p class="wizard__message">
-      This project could not be opened. It may have been saved by a newer version of Design Coach, and it has
-      been left untouched.
-    </p>
-  }
   @default {
-    <p class="wizard__message">Opening your project&hellip;</p>
+    <sdc-open-state-message [state]="store.openState()" />
   }
 }
 

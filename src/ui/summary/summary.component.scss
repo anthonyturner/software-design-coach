@@ -1,0 +1,168 @@
+:host {
+  display: grid;
+  gap: var(--sdc-space-5);
+}
+
+.summary {
+  display: grid;
+  gap: var(--sdc-space-6);
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sdc-space-3);
+  }
+
+  &__back {
+    font-size: var(--sdc-font-size-sm);
+  }
+
+  &__header {
+    display: grid;
+    gap: var(--sdc-space-1);
+  }
+
+  &__title {
+    font-size: var(--sdc-font-size-2xl);
+    overflow-wrap: anywhere;
+  }
+
+  &__mode {
+    color: var(--sdc-color-text-muted);
+    letter-spacing: var(--sdc-letter-spacing-caps);
+    text-transform: uppercase;
+  }
+
+  &__progress {
+    color: var(--sdc-color-text-muted);
+  }
+
+  &__steps {
+    display: grid;
+    gap: var(--sdc-space-5);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__step {
+    display: grid;
+    gap: var(--sdc-space-3);
+    padding: var(--sdc-space-5);
+    background: var(--sdc-color-surface);
+    border: var(--sdc-border-width) solid var(--sdc-color-border);
+    border-radius: var(--sdc-radius-md);
+  }
+
+  &__step-title {
+    font-size: var(--sdc-font-size-xl);
+    break-after: avoid;
+  }
+
+  &__state {
+    color: var(--sdc-color-accent);
+    font-size: var(--sdc-font-size-xs);
+    font-weight: var(--sdc-font-weight-bold);
+    letter-spacing: var(--sdc-letter-spacing-caps);
+    text-transform: uppercase;
+    break-after: avoid;
+
+    &--open {
+      color: var(--sdc-color-warning);
+    }
+  }
+
+  &__open {
+    display: grid;
+    gap: var(--sdc-space-1);
+    color: var(--sdc-color-text-muted);
+    font-size: var(--sdc-font-size-sm);
+  }
+
+  &__open-list {
+    margin: 0;
+    padding-left: var(--sdc-space-5);
+    list-style: disc;
+  }
+
+  &__answer {
+    display: grid;
+    gap: var(--sdc-space-2);
+    break-inside: avoid;
+  }
+
+  &__prompt {
+    margin: 0;
+    color: var(--sdc-color-text-muted);
+    font-size: var(--sdc-font-size-sm);
+    font-weight: var(--sdc-font-weight-medium);
+    break-after: avoid;
+  }
+
+  &__rows {
+    display: grid;
+    gap: var(--sdc-space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__row {
+    display: grid;
+    gap: var(--sdc-space-1);
+    break-inside: avoid;
+  }
+
+  &__row-name,
+  &__entry-name {
+    font-weight: var(--sdc-font-weight-bold);
+    overflow-wrap: anywhere;
+  }
+
+  &__fields,
+  &__entries {
+    display: grid;
+    gap: var(--sdc-space-1);
+    margin: 0;
+  }
+
+  &__field-label {
+    color: var(--sdc-color-text-muted);
+    font-size: var(--sdc-font-size-sm);
+  }
+
+  &__field-value,
+  &__entry-value {
+    margin: 0 0 var(--sdc-space-2) var(--sdc-space-4);
+  }
+
+  &__note {
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+  }
+
+  &__diagram {
+    break-inside: avoid;
+  }
+}
+
+// Paper: one flowing column, no box around each step, and nothing that only works on a screen.
+@media print {
+  .summary {
+    &__actions {
+      display: none;
+    }
+
+    &__step {
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+    }
+
+    &__steps {
+      gap: var(--sdc-space-4);
+    }
+  }
+}

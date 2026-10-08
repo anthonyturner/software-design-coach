@@ -6,3 +6,9 @@
   border-radius: var(--sdc-radius-sm);
   color: var(--sdc-color-warning);
 }
+
+@media print {
+  .notice {
+    display: none;
+  }
+}

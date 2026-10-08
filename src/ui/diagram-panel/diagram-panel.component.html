@@ -1,5 +1,9 @@
-<section #region class="diagram" aria-labelledby="diagram-heading" tabindex="-1">
-  <h3 class="diagram__label" id="diagram-heading">Visualize</h3>
+<section #region class="diagram" [attr.aria-labelledby]="headingId" tabindex="-1">
+  @if (headingLevel() === 3) {
+    <h3 class="diagram__label" [id]="headingId">{{ heading() }}</h3>
+  } @else {
+    <h4 class="diagram__label" [id]="headingId">{{ heading() }}</h4>
+  }
   <figure class="diagram__figure">
     <div
       #canvas

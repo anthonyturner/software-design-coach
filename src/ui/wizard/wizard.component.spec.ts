@@ -1095,6 +1095,146 @@ describe('WizardComponent', () => {
     });
   });
 
+  describe('notes on a step', () => {
+    const notesArea = (page: HTMLElement): HTMLDetailsElement | null =>
+      page.querySelector<HTMLDetailsElement>('sdc-note-field details');
+
+    it('offers a collapsed notes area on every step, from the first to the last', async () => {
+      const page = await open('p1');
+      const seen: (boolean | undefined)[] = [];
+
+      for (let step = 0; step < workflowFor('new-project').steps.length; step++) {
+        seen.push(notesArea(page)?.open);
+        if (step < workflowFor('new-project').steps.length - 1) {
+          await press(page, 'Continue');
+        }
+      }
+
+      expect(seen).toEqual(workflowFor('new-project').steps.map(() => false));
+    });
+
+    it('keeps what is typed against the step it was typed on, through a reload', async () => {
+      const page = await open('p1');
+      await type(page, 'Your notes on this step', 'Ask the clinic owner about no-shows');
+      await press(page, 'Continue');
+      await type(page, 'Your notes on this step', 'Who else is affected?');
+      await press(page, 'Back');
+
+      const reloaded = await reload('p1');
+
+      expect(stepTitle(reloaded)).toBe('Problem');
+      expect(notesArea(reloaded)?.open).toBe(true);
+      expect(fieldLabelled(reloaded, 'Your notes on this step').value).toBe('Ask the clinic owner about no-shows');
+      await press(reloaded, 'Continue');
+      expect(fieldLabelled(reloaded, 'Your notes on this step').value).toBe('Who else is affected?');
+    });
+
+    it('opens a step that has a note and leaves a step without one closed', async () => {
+      const page = await open('p1');
+      await type(page, 'Your notes on this step', 'A note');
+
+      await press(page, 'Continue');
+      expect(notesArea(page)?.open).toBe(false);
+
+      await press(page, 'Back');
+      expect(notesArea(page)?.open).toBe(true);
+    });
+
+    it('is not an answer: it does not count towards a step being done', async () => {
+      const page = await open('p1');
+      await type(page, 'Your notes on this step', 'A note');
+      await press(page, 'Continue');
+
+      expect(railState(page, 'Problem')).toBe(', not started');
+    });
+
+    it('links to the summary of the project', async () => {
+      const page = await open('p1');
+
+      const link = [...page.querySelectorAll('a')].find((found) => found.textContent?.trim() === 'View summary');
+
+      expect(link?.getAttribute('href')).toBe('/projects/p1/summary');
+    });
+  });
+
+  describe('notes in the details of a module', () => {
+    const drawer = (page: HTMLElement): HTMLElement | null => page.querySelector('[role="dialog"]');
+    const mentions = (page: HTMLElement): { step: string | null; text: string | null }[] =>
+      [...(drawer(page)?.querySelectorAll('.drawer__note') ?? [])].map((note) => ({
+        step: note.querySelector('.drawer__note-step')?.textContent ?? null,
+        text: note.querySelector('.drawer__note-text')?.textContent ?? null,
+      }));
+
+    async function activate(name: string): Promise<void> {
+      await settle();
+      const drawing = diagrams.drawings.at(-1);
+      const nodeId = [...(drawing?.interaction?.nodes ?? [])].find(([, label]) => label === name)?.[0];
+      if (!drawing || nodeId === undefined) {
+        throw new Error(`The diagram has no node for "${name}"`);
+      }
+      drawing.finish();
+      await settle();
+      const node = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      node.setAttribute('tabindex', '0');
+      drawing.host.append(node);
+      drawing.interaction?.onActivate(nodeId, node);
+      await settle();
+    }
+
+    async function modules(page: HTMLElement): Promise<void> {
+      await goTo(page, 'Modules');
+      await press(page, 'Add module');
+      await type(rows(page)[0], 'Module', 'Reminders');
+      await press(page, 'Add module');
+      await type(rows(page)[1], 'Module', 'Messaging');
+    }
+
+    it('says no note mentions the module until one does', async () => {
+      const page = await open('p1');
+      await modules(page);
+      await activate('Messaging');
+
+      expect(mentions(page)).toEqual([]);
+      expect(drawer(page)?.textContent).toContain('No note mentions this module.');
+    });
+
+    it('lists, under their step, the notes that name the module, whichever step they were written on', async () => {
+      const page = await open('p1');
+      await goTo(page, 'Goals');
+      await type(page, 'Your notes on this step', 'Messaging must be quick; reminders can wait');
+      await modules(page);
+      await type(page, 'Your notes on this step', 'Is MESSAGING a module, or a detail of Reminders?');
+      await activate('Messaging');
+
+      expect(mentions(page)).toEqual([
+        { step: 'Goals', text: 'Messaging must be quick; reminders can wait' },
+        { step: 'Modules', text: 'Is MESSAGING a module, or a detail of Reminders?' },
+      ]);
+    });
+
+    it('changes as a note is typed while the drawer is open, and as the module is renamed', async () => {
+      const page = await open('p1');
+      await modules(page);
+      await activate('Messaging');
+
+      await type(page, 'Your notes on this step', 'Messaging sends the texts');
+      expect(mentions(page).map((note) => note.step)).toEqual(['Modules']);
+
+      await type(rows(page)[1], 'Module', 'Texting');
+      expect(drawer(page)?.querySelector('h3')?.textContent).toBe('Texting');
+      expect(mentions(page)).toEqual([]);
+    });
+
+    it('does not count a longer word that contains the module name', async () => {
+      const page = await open('p1');
+      await modules(page);
+      await type(page, 'Your notes on this step', 'Remindersgalore and unmessaging');
+      await activate('Reminders');
+
+      expect(mentions(page)).toEqual([]);
+    });
+  });
+
   describe('a Feature / Change project', () => {
     const panel = (page: HTMLElement): HTMLElement | null => page.querySelector('sdc-diagram-panel');
     const caption = (page: HTMLElement): string | null | undefined => panel(page)?.querySelector('.diagram__caption')?.textContent;

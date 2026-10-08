@@ -1,0 +1,21 @@
+<details class="note" [open]="expanded()" (toggle)="toggled($event)">
+  <summary class="note__toggle">
+    Notes
+    @if (value()) {
+      <span class="note__mark">(written)</span>
+    }
+  </summary>
+  <div class="note__body">
+    <label class="field__label" for="step-note">Your notes on this step</label>
+    <p class="field__hint" id="step-note-hint">Only for you. Saved as you type, and shown on the summary.</p>
+    <textarea
+      #textarea
+      class="field__input"
+      id="step-note"
+      rows="5"
+      aria-describedby="step-note-hint"
+      [value]="value()"
+      (input)="changed.emit(textarea.value)"
+    ></textarea>
+  </div>
+</details>

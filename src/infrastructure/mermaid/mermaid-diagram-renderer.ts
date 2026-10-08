@@ -1,5 +1,6 @@
 import type mermaid from 'mermaid';
-import type { DiagramRenderer } from '../../app/diagram-renderer';
+import type { DiagramInteraction, DiagramRenderer } from '../../app/diagram-renderer';
+import { activateNodes } from './mermaid-nodes';
 import { themeVariablesFrom } from './mermaid-theme';
 import type { TokenSource } from './mermaid-theme';
 
@@ -18,13 +19,17 @@ export class MermaidDiagramRenderer implements DiagramRenderer {
 
   constructor(private readonly tokens: () => TokenSource) {}
 
-  async render(source: string, host: HTMLElement): Promise<void> {
+  async render(source: string, host: HTMLElement, interaction?: DiagramInteraction): Promise<void> {
     const drawing = ++this.drawings;
     this.newest.set(host, drawing);
     const library = await this.start();
-    const { svg } = await library.render(`sdc-diagram-${drawing}`, source);
+    const svgId = `sdc-diagram-${drawing}`;
+    const { svg } = await library.render(svgId, source);
     if (this.newest.get(host) === drawing) {
       host.innerHTML = svg;
+      if (interaction) {
+        activateNodes(host, svgId, interaction);
+      }
     }
   }
 

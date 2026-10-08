@@ -143,6 +143,59 @@ describe('ProjectStore', () => {
     });
   });
 
+  describe('writing notes', () => {
+    it('shows the note at once, and saves it after the same pause as an answer', async () => {
+      const store = configure();
+      const id = await store.create('Reminders', 'new-project');
+
+      store.setNote('goals', 'Ask finance about the budget');
+
+      expect(store.project()?.notes).toEqual({ goals: 'Ask finance about the budget' });
+      expect((await repository.load(id))?.['notes']).toEqual({});
+
+      await vi.advanceTimersByTimeAsync(AUTOSAVE_DELAY_MS);
+
+      expect((await repository.load(id))?.['notes']).toEqual({ goals: 'Ask finance about the budget' });
+    });
+
+    it('is still there when the project is opened again, which is what a reload is', async () => {
+      const first = configure();
+      const id = await first.create('Reminders', 'new-project');
+      first.setNote('goals', 'Ask finance');
+      window.dispatchEvent(new Event('pagehide'));
+      await vi.advanceTimersByTimeAsync(0);
+
+      const second = configure();
+      await second.open(id);
+
+      expect(second.project()?.notes).toEqual({ goals: 'Ask finance' });
+    });
+
+    it('does not save when the note says what it already said, or belongs to no step', async () => {
+      const store = configure();
+      await store.create('Reminders', 'new-project');
+      store.setNote('goals', 'a note');
+      await store.flush();
+      const save = vi.spyOn(repository, 'save');
+
+      store.setNote('goals', 'a note');
+      store.setNote('no-such-step', 'lost');
+      await vi.advanceTimersByTimeAsync(AUTOSAVE_DELAY_MS);
+
+      expect(save).not.toHaveBeenCalled();
+    });
+
+    it('does nothing when no project is open', async () => {
+      const store = configure();
+      const save = vi.spyOn(repository, 'save');
+
+      store.setNote('goals', 'x');
+      await store.flush();
+
+      expect(save).not.toHaveBeenCalled();
+    });
+  });
+
   describe('editing entities', () => {
     async function withActors(): Promise<{ store: ProjectStore; id: string }> {
       const store = configure();

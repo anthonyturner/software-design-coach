@@ -1,0 +1,32 @@
+// Paper is light on white, whatever the screen theme is. Re-pointing the tokens means every component
+// that reads them prints correctly without a print rule of its own; a component adds one only for
+// what a token cannot say, such as hiding a control or where a page may break.
+@media print {
+  :root {
+    color-scheme: light;
+
+    --sdc-color-bg: #fff;
+    --sdc-color-surface: #fff;
+    --sdc-color-surface-raised: #fff;
+    --sdc-color-border: #d0d5dd;
+    --sdc-color-border-strong: #98a2b3;
+    --sdc-color-grid: transparent;
+    --sdc-color-text: #101828;
+    --sdc-color-text-muted: #475467;
+    --sdc-color-accent: #0b6b5d;
+    --sdc-color-accent-contrast: #fff;
+    --sdc-color-focus: #0b6b5d;
+    --sdc-color-warning: #92400e;
+    --sdc-elevation-1: none;
+    --sdc-elevation-2: none;
+  }
+
+  body {
+    min-height: 0;
+    background-image: none;
+  }
+
+  a {
+    color: inherit;
+  }
+}

@@ -12,6 +12,7 @@ const scheduling: ModuleDetails = {
   interfaceSketch: 'book(slot): Booking',
   dependencies: ['Storage'],
   dependents: ['Notifier', 'Reports'],
+  notes: [],
 };
 
 describe('ModuleDrawerComponent', () => {
@@ -79,6 +80,23 @@ describe('ModuleDrawerComponent', () => {
     expect(section('Responsibilities')?.textContent).toContain('Nothing written yet.');
     expect(section('Depends on')?.textContent).toContain('Nothing.');
     expect(section('Needed by')?.textContent).toContain('Nothing.');
+    expect(section('Notes')?.textContent).toContain('No note mentions this module.');
+  });
+
+  it('lists the notes that mention the module, each under the step it was written on', async () => {
+    await open({
+      ...scheduling,
+      notes: [
+        { stepId: 'modules', stepTitle: 'Modules', text: 'Is Scheduling too thin?' },
+        { stepId: 'design-review', stepTitle: 'Design Review', text: 'Scheduling hides the calendar.' },
+      ],
+    });
+    const steps = [...(section('Notes')?.querySelectorAll('.drawer__note-step') ?? [])].map((found) => found.textContent);
+    const texts = [...(section('Notes')?.querySelectorAll('.drawer__note-text') ?? [])].map((found) => found.textContent);
+
+    expect(steps).toEqual(['Modules', 'Design Review']);
+    expect(texts).toEqual(['Is Scheduling too thin?', 'Scheduling hides the calendar.']);
+    expect(section('Notes')?.textContent).not.toContain('No note mentions');
   });
 
   it('has nothing to edit, only a Close button', async () => {

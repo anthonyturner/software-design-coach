@@ -1,0 +1,23 @@
+.note {
+  padding: var(--sdc-space-3) var(--sdc-space-4);
+  border: var(--sdc-border-width) solid var(--sdc-color-border);
+  border-radius: var(--sdc-radius-sm);
+
+  &__toggle {
+    cursor: pointer;
+    font-weight: var(--sdc-font-weight-medium);
+  }
+
+  &__mark {
+    margin-left: var(--sdc-space-2);
+    color: var(--sdc-color-text-muted);
+    font-size: var(--sdc-font-size-sm);
+    font-weight: var(--sdc-font-weight-regular);
+  }
+
+  &__body {
+    display: grid;
+    gap: var(--sdc-space-2);
+    margin-top: var(--sdc-space-3);
+  }
+}

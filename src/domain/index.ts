@@ -31,8 +31,10 @@ export {
   isProjectSummary,
   moveEntity,
   NONE_ANSWER,
+  noteFor,
   removeEntity,
   SCHEMA_VERSION,
+  setNote,
   stepAnswers,
   summarize,
   updateEntity,
@@ -57,3 +59,17 @@ export type {
 } from './workflow/workflow.types';
 export { moduleDetails } from './module/module-details';
 export type { ModuleDetails } from './module/module-details';
+export { notesMentioning } from './note/mentions';
+export type { NoteMention } from './note/mentions';
+export { summaryOf } from './summary/summary';
+export type {
+  DesignSummary,
+  SummaryAnswer,
+  SummaryAnswerBody,
+  SummaryDiagram,
+  SummaryEntry,
+  SummaryField,
+  SummaryRow,
+  SummaryStep,
+  SummaryValue,
+} from './summary/summary.types';

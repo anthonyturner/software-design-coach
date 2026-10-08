@@ -1,0 +1,90 @@
+<div class="summary__actions">
+  <a class="summary__back" [routerLink]="['/projects', id()]">&larr; Back to the wizard</a>
+  <button type="button" class="button button--primary" (click)="print()">Print</button>
+</div>
+
+@if (store.openState() === 'open' && summary(); as s) {
+  <article class="summary" aria-labelledby="summary-title">
+    <header class="summary__header">
+      <h2 class="summary__title" id="summary-title">{{ s.projectName }}</h2>
+      <p class="summary__mode">{{ s.workflowTitle }} &middot; design summary</p>
+      <p class="summary__progress">{{ s.answeredCount }} of {{ s.stepCount }} steps answered</p>
+    </header>
+
+    <ol class="summary__steps">
+      @for (step of s.steps; track step.stepId) {
+        <li class="summary__step">
+          <h3 class="summary__step-title">{{ step.number }}. {{ step.title }}</h3>
+          <p class="summary__state" [class.summary__state--open]="step.state === 'open'">
+            {{ step.state === 'open' ? 'Open' : 'Answered' }}
+          </p>
+
+          @if (step.openPrompts.length > 0) {
+            <div class="summary__open">
+              <p class="summary__open-label">Still to answer</p>
+              <ul class="summary__open-list">
+                @for (prompt of step.openPrompts; track $index) {
+                  <li>{{ prompt }}</li>
+                }
+              </ul>
+            </div>
+          }
+
+          @for (answer of step.answers; track answer.questionId) {
+            @let body = answer.body;
+            <div class="summary__answer">
+              <h4 class="summary__prompt">{{ answer.prompt }}</h4>
+              @if (body.kind === 'rows') {
+                <ul class="summary__rows">
+                  @for (row of body.rows; track $index) {
+                    <li class="summary__row">
+                      <p class="summary__row-name">{{ row.name }}</p>
+                      @if (row.fields.length > 0) {
+                        <dl class="summary__fields">
+                          @for (field of row.fields; track field.label) {
+                            <dt class="summary__field-label">{{ field.label }}</dt>
+                            <dd class="summary__field-value"><sdc-summary-value [value]="field.value" /></dd>
+                          }
+                        </dl>
+                      }
+                    </li>
+                  }
+                </ul>
+              } @else if (body.kind === 'entries') {
+                <dl class="summary__entries">
+                  @for (entry of body.entries; track $index) {
+                    <dt class="summary__entry-name">{{ entry.name }}</dt>
+                    <dd class="summary__entry-value"><sdc-summary-value [value]="entry.value" /></dd>
+                  }
+                </dl>
+              } @else {
+                <sdc-summary-value [value]="body" />
+              }
+            </div>
+          }
+
+          @if (step.note) {
+            <div class="summary__answer">
+              <h4 class="summary__prompt">Notes</h4>
+              <p class="summary__note">{{ step.note }}</p>
+            </div>
+          }
+
+          @if (step.diagram; as diagram) {
+            <sdc-diagram-panel
+              class="summary__diagram"
+              heading="Diagram"
+              [headingLevel]="4"
+              [kind]="diagram.kind"
+              [source]="diagram.source"
+            />
+          }
+        </li>
+      }
+    </ol>
+  </article>
+} @else {
+  <sdc-open-state-message [state]="store.openState()" />
+}
+
+<sdc-storage-notice [problem]="store.problem()" />

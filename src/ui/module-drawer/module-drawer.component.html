@@ -70,4 +70,20 @@
       <p class="drawer__empty">Nothing.</p>
     }
   </section>
+
+  <section class="drawer__section" aria-labelledby="module-drawer-notes">
+    <h4 class="drawer__heading" id="module-drawer-notes">Notes</h4>
+    @if (m.notes.length > 0) {
+      <ul class="drawer__notes">
+        @for (note of m.notes; track note.stepId) {
+          <li class="drawer__note">
+            <span class="drawer__note-step">{{ note.stepTitle }}</span>
+            <span class="drawer__note-text">{{ note.text }}</span>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="drawer__empty">No note mentions this module.</p>
+    }
+  </section>
 </section>

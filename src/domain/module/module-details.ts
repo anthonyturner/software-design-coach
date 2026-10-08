@@ -1,5 +1,7 @@
 import { entityLabel, isNamed, listField, textField } from '../entity/entities';
 import type { Entity } from '../entity/entity.types';
+import { notesMentioning } from '../note/mentions';
+import type { NoteMention } from '../note/mentions';
 import type { Project } from '../project/project.types';
 
 /** What the drawer shows of one module: its own words, and its neighbours by name. */
@@ -14,6 +16,8 @@ export interface ModuleDetails {
   readonly dependencies: readonly string[];
   /** The named modules that need it, in the order the modules are listed. */
   readonly dependents: readonly string[];
+  /** The notes that name the module, in workflow order. A rename changes which notes these are. */
+  readonly notes: readonly NoteMention[];
 }
 
 /**
@@ -37,6 +41,7 @@ export function moduleDetails(project: Project, moduleId: string): ModuleDetails
     interfaceSketch: textField(module, 'interface').trim(),
     dependencies: needed.map((id) => modules.find((found) => found.id === id)).filter(isNamedModule).map(nameOf),
     dependents: modules.filter((other) => isNamed(other) && listField(other, 'dependsOn').includes(module.id)).map(nameOf),
+    notes: notesMentioning(project, module.name),
   };
 }
 

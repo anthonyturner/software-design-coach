@@ -8,6 +8,7 @@
   box-shadow: var(--sdc-elevation-1);
 
   &__label {
+    margin: 0;
     color: var(--sdc-color-accent);
     font-size: var(--sdc-font-size-xs);
     letter-spacing: var(--sdc-letter-spacing-caps);
@@ -66,5 +67,25 @@
     border: var(--sdc-border-width) solid var(--sdc-color-border);
     border-radius: var(--sdc-radius-sm);
     font-size: var(--sdc-font-size-xs);
+  }
+}
+
+// Mermaid draws with the dark tokens it read when it started. Inverting the drawing, then turning the
+// hues back, gives dark text and lines on a light ground with the same colours, so it needs no second
+// drawing. The source disclosure is for the screen; the drawing must not be cut to a scrolling box.
+@media print {
+  .diagram {
+    padding: 0;
+    border: 0;
+
+    &__canvas {
+      overflow: visible;
+      max-height: none;
+      filter: invert(1) hue-rotate(180deg);
+    }
+
+    &__source {
+      display: none;
+    }
   }
 }

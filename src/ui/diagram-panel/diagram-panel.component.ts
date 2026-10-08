@@ -11,6 +11,8 @@ type DrawState = 'empty' | 'loading' | 'ready' | 'error';
 
 const NO_NODES: ReadonlyMap<string, string> = new Map();
 
+let panels = 0;
+
 /** The VISUALIZE column: shows one diagram's source drawn by the renderer, and what the user needs to know while it is not drawn. */
 @Component({
   selector: 'sdc-diagram-panel',
@@ -24,7 +26,12 @@ export class DiagramPanelComponent {
   readonly source = input.required<string | undefined>();
   /** The nodes the user can activate, by node id in the source, with the name announced for each. */
   readonly nodes = input<ReadonlyMap<string, string>>(NO_NODES);
+  /** What the panel's own heading says, and which level it is, so the panel fits under whatever heading its page puts above it. */
+  readonly heading = input('Visualize');
+  readonly headingLevel = input<3 | 4>(3);
   readonly nodeActivated = output<string>();
+
+  protected readonly headingId = `diagram-heading-${++panels}`;
 
   protected readonly definition = computed(() => diagramDefinitions[this.kind()]);
   protected readonly state = signal<DrawState>('empty');

@@ -61,4 +61,27 @@
     border-radius: var(--sdc-radius-sm);
     font-size: var(--sdc-font-size-xs);
   }
+
+  &__notes {
+    display: grid;
+    gap: var(--sdc-space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__note {
+    display: grid;
+    gap: var(--sdc-space-1);
+  }
+
+  &__note-step {
+    color: var(--sdc-color-text-muted);
+    font-size: var(--sdc-font-size-sm);
+  }
+
+  &__note-text {
+    overflow-wrap: anywhere;
+    white-space: pre-line;
+  }
 }

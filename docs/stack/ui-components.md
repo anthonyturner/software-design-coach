@@ -85,8 +85,9 @@ in `docs/tech-stack.md`; if it has not, skip this section.
   component it belongs to and what it styles.
 - **Theme CSS variables** for colours and similar values, instead of hard-coded
   values, so a theme change is one edit.
-- **Bootstrap utility classes** for layout and spacing, instead of hand-written
-  one-off rules.
+- **Layout and spacing from the design tokens and our own shared components**,
+  instead of hand-written one-off rules. No Bootstrap or other UI kit
+  ([ADR-0006](../decisions/0006-build-our-own-component-system.md)).
 
 Whatever the styling approach, keep styles component-scoped: no global style
 overrides, and avoid `::ng-deep`, which leaks a component's styles into every

@@ -1,0 +1,73 @@
+@let m = module();
+<section #dialog class="drawer" role="dialog" aria-labelledby="module-drawer-title" tabindex="-1">
+  <header class="drawer__header">
+    <h3 class="drawer__title" id="module-drawer-title">{{ m.name }}</h3>
+    <button type="button" class="button button--small" (click)="closed.emit()">Close</button>
+  </header>
+
+  <section class="drawer__section" aria-labelledby="module-drawer-purpose">
+    <h4 class="drawer__heading" id="module-drawer-purpose">Purpose</h4>
+    @if (m.purpose) {
+      <p class="drawer__text">{{ m.purpose }}</p>
+    } @else {
+      <p class="drawer__empty">Nothing written yet.</p>
+    }
+  </section>
+
+  <section class="drawer__section" aria-labelledby="module-drawer-responsibilities">
+    <h4 class="drawer__heading" id="module-drawer-responsibilities">Responsibilities</h4>
+    @if (m.responsibilities.length > 0) {
+      <ul class="drawer__list">
+        @for (responsibility of m.responsibilities; track $index) {
+          <li>{{ responsibility }}</li>
+        }
+      </ul>
+    } @else {
+      <p class="drawer__empty">Nothing written yet.</p>
+    }
+  </section>
+
+  <section class="drawer__section" aria-labelledby="module-drawer-hides">
+    <h4 class="drawer__heading" id="module-drawer-hides">Hides</h4>
+    @if (m.hides) {
+      <p class="drawer__text">{{ m.hides }}</p>
+    } @else {
+      <p class="drawer__empty">Nothing written yet.</p>
+    }
+  </section>
+
+  <section class="drawer__section" aria-labelledby="module-drawer-interface">
+    <h4 class="drawer__heading" id="module-drawer-interface">Interface sketch</h4>
+    @if (m.interfaceSketch) {
+      <pre class="drawer__sketch"><code>{{ m.interfaceSketch }}</code></pre>
+    } @else {
+      <p class="drawer__empty">Nothing written yet.</p>
+    }
+  </section>
+
+  <section class="drawer__section" aria-labelledby="module-drawer-dependencies">
+    <h4 class="drawer__heading" id="module-drawer-dependencies">Depends on</h4>
+    @if (m.dependencies.length > 0) {
+      <ul class="drawer__list">
+        @for (name of m.dependencies; track $index) {
+          <li>{{ name }}</li>
+        }
+      </ul>
+    } @else {
+      <p class="drawer__empty">Nothing.</p>
+    }
+  </section>
+
+  <section class="drawer__section" aria-labelledby="module-drawer-dependents">
+    <h4 class="drawer__heading" id="module-drawer-dependents">Needed by</h4>
+    @if (m.dependents.length > 0) {
+      <ul class="drawer__list">
+        @for (name of m.dependents; track $index) {
+          <li>{{ name }}</li>
+        }
+      </ul>
+    } @else {
+      <p class="drawer__empty">Nothing.</p>
+    }
+  </section>
+</section>

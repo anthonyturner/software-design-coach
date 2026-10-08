@@ -877,4 +877,178 @@ describe('WizardComponent', () => {
       expect(panel(page)?.textContent).toContain('Name a module');
     });
   });
+
+  describe('the details of a module, opened from its diagram', () => {
+    const drawer = (page: HTMLElement): HTMLElement | null => page.querySelector('[role="dialog"]');
+    const heading = (page: HTMLElement): string | undefined => drawer(page)?.querySelector('h3')?.textContent?.trim();
+
+    async function modules(page: HTMLElement): Promise<void> {
+      await goTo(page, 'Modules');
+      await press(page, 'Add module');
+      await type(rows(page)[0], 'Module', 'Reminders');
+      await press(page, 'Add module');
+      await type(rows(page)[1], 'Module', 'Messaging');
+      await type(rows(page)[1], 'What does it own', 'Sends texts');
+    }
+
+    /** Activates the node of the named module the way the renderer does, with a focusable node standing in for the drawn one. */
+    async function activate(name: string): Promise<SVGElement> {
+      await settle();
+      const drawing = diagrams.drawings.at(-1);
+      const nodeId = [...(drawing?.interaction?.nodes ?? [])].find(([, label]) => label === name)?.[0];
+      if (!drawing || nodeId === undefined) {
+        throw new Error(`The diagram has no node for "${name}"`);
+      }
+      drawing.finish();
+      await settle();
+      const node = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      node.setAttribute('tabindex', '0');
+      drawing.host.append(node);
+      drawing.interaction?.onActivate(nodeId, node);
+      await settle();
+      return node;
+    }
+
+    async function escape(): Promise<void> {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      await settle();
+    }
+
+    it('names the modules of the module diagram as the nodes to activate, and no node of any other diagram', async () => {
+      const page = await open('p1');
+      await goTo(page, 'Users');
+      await press(page, 'Add actor');
+      await type(page, 'Role', 'Receptionist');
+      expect(diagrams.drawings.at(-1)?.interaction).toBeUndefined();
+
+      await modules(page);
+
+      expect([...(diagrams.drawings.at(-1)?.interaction?.nodes.values() ?? [])]).toEqual(['Reminders', 'Messaging']);
+    });
+
+    it('opens nothing until a node is activated', async () => {
+      const page = await open('p1');
+
+      await modules(page);
+
+      expect(drawer(page)).toBeNull();
+    });
+
+    it('opens the module that was activated, with what the user wrote about it, and moves focus in', async () => {
+      const page = await open('p1');
+      await modules(page);
+
+      await activate('Messaging');
+
+      expect(heading(page)).toBe('Messaging');
+      expect(drawer(page)?.textContent).toContain('Sends texts');
+      expect(drawer(page)?.getAttribute('aria-labelledby')).toBe(drawer(page)?.querySelector('h3')?.id);
+      expect(document.activeElement).toBe(drawer(page));
+    });
+
+    it('shows another module when another node is activated, without a second drawer', async () => {
+      const page = await open('p1');
+      await modules(page);
+      await activate('Messaging');
+
+      await activate('Reminders');
+
+      expect(page.querySelectorAll('[role="dialog"]')).toHaveLength(1);
+      expect(heading(page)).toBe('Reminders');
+    });
+
+    it('closes on Escape and returns focus to the node that opened it', async () => {
+      const page = await open('p1');
+      await modules(page);
+      const node = await activate('Messaging');
+
+      await escape();
+
+      expect(drawer(page)).toBeNull();
+      expect(document.activeElement).toBe(node);
+    });
+
+    it('closes from its Close button and returns focus to the node that opened it', async () => {
+      const page = await open('p1');
+      await modules(page);
+      const node = await activate('Messaging');
+
+      await press(drawer(page) ?? page, 'Close');
+
+      expect(drawer(page)).toBeNull();
+      expect(document.activeElement).toBe(node);
+    });
+
+    it('returns focus to the diagram panel when a redraw has replaced the node', async () => {
+      const page = await open('p1');
+      await modules(page);
+      const node = await activate('Messaging');
+      node.remove();
+
+      await escape();
+
+      expect(document.activeElement).toBe(page.querySelector('sdc-diagram-panel section'));
+    });
+
+    it('can be opened again after it was closed', async () => {
+      const page = await open('p1');
+      await modules(page);
+      await activate('Messaging');
+      await escape();
+
+      await activate('Messaging');
+
+      expect(heading(page)).toBe('Messaging');
+    });
+
+    it('follows an edit to the module while it is open, and does not take focus from the field being typed in', async () => {
+      const page = await open('p1');
+      await modules(page);
+      await activate('Messaging');
+
+      const field = fieldLabelled(rows(page)[1], 'What does it own');
+      field.focus();
+      await type(rows(page)[1], 'What does it own', 'Sends texts and calls');
+
+      expect(drawer(page)?.textContent).toContain('Sends texts and calls');
+      expect(document.activeElement).toBe(field);
+    });
+
+    it('closes for good when the module loses its name, instead of coming back when it is named again', async () => {
+      const page = await open('p1');
+      await modules(page);
+      await activate('Messaging');
+
+      await type(rows(page)[1], 'Module', '');
+      expect(drawer(page)).toBeNull();
+      await type(rows(page)[1], 'Module', 'Messaging');
+
+      expect(drawer(page)).toBeNull();
+    });
+
+    it('closes when the step changes to one that does not draw the module', async () => {
+      const page = await open('p1');
+      await modules(page);
+      await activate('Messaging');
+
+      await goTo(page, 'Users');
+      await goTo(page, 'Modules');
+
+      expect(drawer(page)).toBeNull();
+    });
+
+    it('opens from the dependency diagram too, naming what the module needs and what needs it', async () => {
+      const page = await open('p1');
+      await modules(page);
+      await goTo(page, 'Dependencies');
+      await pickReference(rows(page)[0], 'Messaging');
+
+      await activate('Messaging');
+
+      const text = drawer(page)?.textContent ?? '';
+      expect(heading(page)).toBe('Messaging');
+      expect(text).toContain('Needed by');
+      expect(text).toContain('Reminders');
+    });
+  });
 });

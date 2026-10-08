@@ -1,11 +1,11 @@
-<section class="diagram" aria-labelledby="diagram-heading">
+<section #region class="diagram" aria-labelledby="diagram-heading" tabindex="-1">
   <h3 class="diagram__label" id="diagram-heading">Visualize</h3>
   <figure class="diagram__figure">
     <div
       #canvas
       class="diagram__canvas"
-      role="img"
-      [attr.aria-label]="definition().title + ' diagram. Its source is listed below as text.'"
+      [attr.role]="interactive() ? 'group' : 'img'"
+      [attr.aria-label]="label()"
       [hidden]="state() !== 'ready'"
     ></div>
     @switch (state()) {

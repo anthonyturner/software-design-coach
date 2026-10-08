@@ -54,12 +54,18 @@
     }
   }
 
-  &__diagram {
+  &__side {
+    display: grid;
+    gap: var(--sdc-space-4);
     position: sticky;
     top: var(--sdc-space-5);
+    max-height: calc(100vh - 2 * var(--sdc-space-5));
+    overflow-y: auto;
 
     @include breakpoints.narrow {
       position: static;
+      max-height: none;
+      overflow-y: visible;
     }
   }
 

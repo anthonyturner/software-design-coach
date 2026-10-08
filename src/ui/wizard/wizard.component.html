@@ -24,7 +24,17 @@
           (next)="goTo(v.nextId)"
         />
         @if (v.diagram; as diagram) {
-          <sdc-diagram-panel class="wizard__diagram" [kind]="diagram.kind" [source]="diagram.source" />
+          <div class="wizard__side">
+            <sdc-diagram-panel
+              [kind]="diagram.kind"
+              [source]="diagram.source"
+              [nodes]="diagram.names"
+              (nodeActivated)="openModule($event)"
+            />
+            @if (drawer(); as module) {
+              <sdc-module-drawer [module]="module" (closed)="closeDrawer()" />
+            }
+          </div>
         }
       </div>
     }

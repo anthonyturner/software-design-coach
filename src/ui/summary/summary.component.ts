@@ -4,14 +4,22 @@ import { RouterLink } from '@angular/router';
 import { ProjectStore } from '../../app/project-store';
 import { summaryOf } from '../../domain';
 import { DiagramPanelComponent } from '../diagram-panel/diagram-panel.component';
+import { ExportMenuComponent } from '../export-menu/export-menu.component';
 import { OpenStateMessageComponent } from '../open-state-message/open-state-message.component';
 import { StorageNoticeComponent } from '../storage-notice/storage-notice.component';
 import { SummaryValueComponent } from '../summary-value/summary-value.component';
 
-/** The whole design on one page, derived from the open project and read-only, laid out to be printed (ADR-0004). */
+/** The whole design on one page, derived from the open project and read-only, laid out to be printed or exported (ADR-0004). */
 @Component({
   selector: 'sdc-summary',
-  imports: [DiagramPanelComponent, OpenStateMessageComponent, RouterLink, StorageNoticeComponent, SummaryValueComponent],
+  imports: [
+    DiagramPanelComponent,
+    ExportMenuComponent,
+    OpenStateMessageComponent,
+    RouterLink,
+    StorageNoticeComponent,
+    SummaryValueComponent,
+  ],
   templateUrl: './summary.component.html',
   styleUrl: './summary.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

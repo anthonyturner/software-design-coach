@@ -19,6 +19,13 @@
     font-size: var(--sdc-font-size-sm);
   }
 
+  &__tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sdc-space-3);
+  }
+
   &__header {
     display: grid;
     gap: var(--sdc-space-1);

@@ -364,6 +364,12 @@ describe('buildPackage', () => {
       }
     });
 
+    it('keeps emphasis marks in a name from unbalancing the bold the package puts round it', () => {
+      const project = withRow(newProject(), 'actor', 'a1', { name: 'a* and snake_case', fields: { needs: 'x' } });
+
+      expect(fileOf(project, 'problem.md').markdown).toContain('- **a\\* and snake\\_case**\n');
+    });
+
     it('keeps a project name that is not one line, or starts like a heading, on the one line under the title', () => {
       const project = newProject('new-project', '# Big\nname  with\tspaces #');
 
@@ -466,6 +472,13 @@ describe('packageFileName', () => {
     ['a Windows device name', 'CON', 'con-design-package.md'],
   ])('is safe for %s', (_name, projectName, expected) => {
     expect(packageFileName(projectName)).toBe(expected);
+  });
+
+  it('cuts a long name between characters, never through a character made of two UTF-16 units', () => {
+    const name = packageFileName('a' + '𠀀'.repeat(80));
+
+    expect(name).toBe('a' + '𠀀'.repeat(59) + '-design-package.md');
+    expect(name).not.toMatch(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/);
   });
 
   it('keeps a very long name to a length every file system takes', () => {

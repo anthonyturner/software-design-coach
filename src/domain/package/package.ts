@@ -39,12 +39,15 @@ export function combinePackage(files: readonly PackageFile[], projectName: strin
 
 /** A name for the combined document that any file system takes, made from the project's name. */
 export function packageFileName(projectName: string): string {
-  const slug = projectName
-    .normalize('NFC')
-    .toLowerCase()
-    .replace(/[^\p{L}\p{M}\p{N}]+/gu, '-')
-    .replace(/^-+/, '')
+  const slug = [
+    ...projectName
+      .normalize('NFC')
+      .toLowerCase()
+      .replace(/[^\p{L}\p{M}\p{N}]+/gu, '-')
+      .replace(/^-+/, ''),
+  ]
     .slice(0, 60)
+    .join('')
     .replace(/-+$/, '');
   return `${slug === '' ? '' : `${slug}-`}design-package.md`;
 }
@@ -109,7 +112,7 @@ function anchorOf(title: string): string {
     .replace(/\s+/g, '-');
 }
 
-/** Moves every heading outside a fenced block down one level. */
+/** Moves every heading outside a fenced block down one level. The only fences in a file are the package's own: backtick fences at the start of a line. */
 function demoted(markdown: string): string {
   let inFence = false;
   return markdown

@@ -1,7 +1,7 @@
-import type { CopyResult } from '../file-exporter';
+import type { CopyResult, FileExporter } from '../file-exporter';
 
 /** Stands in for `FileExporter` in a component test: it records what would have left the app and reports what it is told to. */
-export class FakeFileExporter {
+export class FakeFileExporter implements Pick<FileExporter, 'download' | 'copy'> {
   readonly downloads: { fileName: string; text: string }[] = [];
   readonly copies: string[] = [];
   copyResult: CopyResult = { copied: true };

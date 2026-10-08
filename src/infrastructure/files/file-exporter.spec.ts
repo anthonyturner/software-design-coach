@@ -23,8 +23,13 @@ describe('FileExporter', () => {
     let blobs: Blob[];
     let clicked: { download: string; href: string; attached: boolean }[];
     let revoke: ReturnType<typeof vi.fn>;
+    let originalUrlMethods: [string, PropertyDescriptor | undefined][];
 
     beforeEach(() => {
+      originalUrlMethods = ['createObjectURL', 'revokeObjectURL'].map((name) => [
+        name,
+        Object.getOwnPropertyDescriptor(page.URL, name),
+      ]);
       blobs = [];
       clicked = [];
       revoke = vi.fn();
@@ -42,6 +47,13 @@ describe('FileExporter', () => {
 
     afterEach(async () => {
       await new Promise((resolve) => page.setTimeout(resolve, 5));
+      for (const [name, original] of originalUrlMethods) {
+        if (original) {
+          Object.defineProperty(page.URL, name, original);
+        } else {
+          Reflect.deleteProperty(page.URL, name);
+        }
+      }
     });
 
     it('saves the text as a Markdown file with the name it is given', async () => {

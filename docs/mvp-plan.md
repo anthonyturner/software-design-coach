@@ -1,13 +1,12 @@
 # MVP architecture and implementation plan
 
-- **Status:** Proposed — awaiting review. No application code is written until
-  this is accepted.
+- **Status:** Accepted by Anthony Turner on 2026-10-08.
 - **Date:** 2026-10-08
 - **Source:** [product-spec.md](product-spec.md), sections 12, 14 and 16 in
   particular.
 
-Once accepted, the decisions marked **(ADR)** below are recorded under
-[decisions/](decisions/README.md) and each slice in the plan becomes a GitHub
+The decisions marked **(ADR)** below are recorded under
+[decisions/](decisions/README.md), and each slice in the plan is a GitHub
 issue.
 
 ## 1. What the MVP is
@@ -44,12 +43,13 @@ cannot feed any of that. So:
   state of its own, so none of them can drift out of step with it.
 
 This is what keeps the product deep: one model with a small API, and many
-read-only views over it. **(ADR)**
+read-only views over it. **([ADR-0004](decisions/0004-derive-every-view-from-one-design-model.md))**
 
 ## 3. Architecture
 
 Four layers, dependencies pointing inward only. The domain knows nothing about
 Angular, the browser or Mermaid's renderer.
+**([ADR-0005](decisions/0005-layer-the-app-with-two-ports.md))**
 
 ```mermaid
 flowchart TB
@@ -113,17 +113,17 @@ Why these seams, and only these:
 | Choice | Recommendation | Why |
 | --- | --- | --- |
 | Framework | Current Angular, standalone components, **signals**, zoneless change detection, strict TypeScript | Spec §12; signals + OnPush match the installed Angular rules. |
-| Styling | SCSS with **design tokens as CSS custom properties** and a small set of own components; **no Bootstrap** | Spec §13 asks for a distinctive dark developer-tool look and warns against a generic SaaS feel, which is Bootstrap's default. Our needs (rail, panels, forms, tabs, drawer) are small. **(ADR — open question 1)** |
-| Diagrams | `mermaid` npm package, lazy-loaded | Versioned and offline-capable, unlike a CDN script; lazy-loading keeps the first paint light. **(ADR)** |
-| Persistence | `localStorage`, one key per project plus an index, with a schema version | A design project is tens of KB; localStorage is synchronous and simple. IndexedDB is a later adapter if size demands it. **(ADR)** |
+| Styling | SCSS with **design tokens as CSS custom properties** and a small set of own components; **no Bootstrap** | Spec §13 asks for a distinctive dark developer-tool look and warns against a generic SaaS feel, which is Bootstrap's default. Our needs (rail, panels, forms, tabs, drawer) are small. **([ADR-0006](decisions/0006-build-our-own-component-system.md))** |
+| Diagrams | `mermaid` npm package, lazy-loaded | Versioned and offline-capable, unlike a CDN script; lazy-loading keeps the first paint light. **([ADR-0007](decisions/0007-bundle-mermaid-from-npm.md))** |
+| Persistence | `localStorage`, one key per project plus an index, with a schema version | A design project is tens of KB; localStorage is synchronous and simple. IndexedDB is a later adapter if size demands it. **([ADR-0008](decisions/0008-persist-projects-in-localstorage.md))** |
 | Unit tests | Vitest (the Angular CLI default) | Fast; the domain layer needs no browser. |
 | Lint | angular-eslint | Standard for Angular. |
 | Commit hooks | husky + commitlint, as suggested by the installed TypeScript pack | Enforces the commit format the playbook expects. |
 | CI | GitHub Actions: `npm ci`, lint, test, build on every PR | Agents run in `merge` mode, so CI is the safety net. |
 | Hosting | None in the MVP — runs locally with `ng serve` | Spec §12: no unnecessary infrastructure. A static host is a one-step addition later. |
 
-New dependencies need your sign-off (rule 6): Angular itself, `mermaid`,
-Vitest, angular-eslint, husky, commitlint.
+Approved dependencies (rule 6): Angular itself, `mermaid`, Vitest,
+angular-eslint, husky, commitlint. Anything else still needs sign-off.
 
 ## 5. Screens
 
@@ -186,13 +186,15 @@ advisor.
 - **Manual check** in the running app for each slice's acceptance criteria,
   reported in the PR as still needed or done.
 
-## 7. Open questions for review
+## 7. Decisions from the review
 
-1. **Bootstrap or own component system?** Recommendation: own small system on
-   CSS tokens, for the look spec §13 asks for. Bootstrap would be faster for
-   forms but pulls toward the generic look the spec rules out.
-2. **Dependencies.** Approve Angular, `mermaid`, Vitest, angular-eslint, husky
-   and commitlint?
-3. **Repository visibility.** Created **private**. Make it public?
-4. **Order of slices 3 and 5.** Diagrams before the second workflow is the
-   recommendation — it validates the "projections" decision earlier.
+The maintainer answered the plan's open questions on 2026-10-08:
+
+1. **Bootstrap or own component system?** Our own small system on CSS tokens
+   ([ADR-0006](decisions/0006-build-our-own-component-system.md)).
+2. **Dependencies.** Angular, `mermaid`, Vitest, angular-eslint, husky and
+   commitlint are approved.
+3. **Repository visibility.** Public.
+4. **Order of slices 3 and 5.** Diagrams (slice 3) come before the
+   Feature / Change workflow (slice 5), so the "projections" decision is
+   validated early.

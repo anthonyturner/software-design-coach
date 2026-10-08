@@ -49,3 +49,8 @@ ADR when the project decides differently.
 | [0001](0001-record-refinement-on-the-issue.md) | Record engineering refinement on the issue | Accepted |
 | [0002](0002-track-work-in-github-only.md) | Track work in GitHub only | Accepted |
 | [0003](0003-agent-autonomy.md) | Agent autonomy | Accepted |
+| [0004](0004-derive-every-view-from-one-design-model.md) | Derive every view from one structured design model | Accepted |
+| [0005](0005-layer-the-app-with-two-ports.md) | Layer the app inward, with exactly two ports | Accepted |
+| [0006](0006-build-our-own-component-system.md) | Build our own small component system instead of Bootstrap | Accepted |
+| [0007](0007-bundle-mermaid-from-npm.md) | Bundle Mermaid from npm, lazy-loaded, instead of the CDN script | Accepted |
+| [0008](0008-persist-projects-in-localstorage.md) | Persist projects in localStorage, with a schema version | Accepted |

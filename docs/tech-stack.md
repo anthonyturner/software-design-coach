@@ -11,9 +11,11 @@ so a missing line costs more than a long one.
 - Angular, standalone components with signals and zoneless change detection
   (planned — [mvp-plan.md](mvp-plan.md) §4). Styling: SCSS with design tokens
   as CSS custom properties, BEM class names, our own small component set; no
-  Bootstrap unless the plan review decides otherwise.
-- Diagrams: the `mermaid` npm package, lazy-loaded behind an adapter.
-- Data: browser `localStorage` only, behind a `ProjectRepository` port. No
+  Bootstrap or other UI kit ([ADR-0006](decisions/0006-build-our-own-component-system.md)).
+- Diagrams: the `mermaid` npm package, lazy-loaded behind an adapter
+  ([ADR-0007](decisions/0007-bundle-mermaid-from-npm.md)).
+- Data: browser `localStorage` only, behind a `ProjectRepository` port
+  ([ADR-0008](decisions/0008-persist-projects-in-localstorage.md)). No
   backend, no external services, no AI provider calls in the MVP.
 - Build: Angular CLI. Tests: Vitest. Lint: angular-eslint. Not deployed in the
   MVP; it runs locally with `ng serve`.

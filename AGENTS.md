@@ -12,8 +12,9 @@ that matches the work before starting it.
 | --- | --- |
 | `npm ci` | Installs dependencies from the lockfile. |
 | `npm run build` | Builds the project. Run it before calling any change finished. |
-| `npm test` | Runs the tests. |
-| `npm run lint` | Runs the linters. |
+| `npm test` | Runs the Vitest unit tests once (no watch mode). |
+| `npm run lint` | Runs angular-eslint, including the import rules that keep `src/domain/` free of Angular, the DOM, storage and Mermaid. |
+| `npm start` | Serves the app locally at http://localhost:4200 with `ng serve`. |
 
 The default branch is `main`. Infer the layout from the
 repository tree, which cannot drift out of date the way a list in this file can.

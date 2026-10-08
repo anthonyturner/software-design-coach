@@ -1,0 +1,58 @@
+// Global base styles: reset, page surface and typography. Everything
+// component-specific lives in that component's own style file.
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--sdc-color-bg);
+  background-image:
+    linear-gradient(var(--sdc-color-grid) var(--sdc-border-width), transparent var(--sdc-border-width)),
+    linear-gradient(90deg, var(--sdc-color-grid) var(--sdc-border-width), transparent var(--sdc-border-width));
+  background-size: var(--sdc-grid-size) var(--sdc-grid-size);
+  color: var(--sdc-color-text);
+  font-family: var(--sdc-font-sans);
+  font-size: var(--sdc-font-size-md);
+  line-height: var(--sdc-line-height-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  line-height: var(--sdc-line-height-tight);
+  letter-spacing: var(--sdc-letter-spacing-tight);
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--sdc-color-accent);
+}
+
+code,
+kbd,
+pre {
+  font-family: var(--sdc-font-mono);
+}
+
+:focus-visible {
+  outline: var(--sdc-focus-ring-width) solid var(--sdc-color-focus);
+  outline-offset: var(--sdc-space-1);
+}
+
+::selection {
+  background: var(--sdc-color-accent);
+  color: var(--sdc-color-accent-contrast);
+}

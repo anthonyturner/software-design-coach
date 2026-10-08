@@ -8,6 +8,8 @@ import { FakeDiagramRenderer } from '../../app/testing/fake-diagram-renderer';
 import { InMemoryProjectRepository } from '../../app/testing/in-memory-project-repository';
 import { addEntity, answer, createProject, setNote, summaryOf, updateEntity, workflowFor } from '../../domain';
 import type { EntityEdit, EntityKind, Project } from '../../domain';
+import { FileExporter } from '../../infrastructure/files/file-exporter';
+import { FakeFileExporter } from '../../infrastructure/files/testing/fake-file-exporter';
 import { SummaryComponent } from './summary.component';
 
 const now = '2026-10-08T09:00:00.000Z';
@@ -36,6 +38,7 @@ function reminders(): Project {
 describe('SummaryComponent', () => {
   let repository: InMemoryProjectRepository;
   let diagrams: FakeDiagramRenderer;
+  let exporter: FakeFileExporter;
   let harness: RouterTestingHarness;
 
   async function open(project: Project): Promise<HTMLElement> {
@@ -76,11 +79,13 @@ describe('SummaryComponent', () => {
   beforeEach(() => {
     repository = new InMemoryProjectRepository();
     diagrams = new FakeDiagramRenderer();
+    exporter = new FakeFileExporter();
     TestBed.configureTestingModule({
       providers: [
         provideRouter(routes, withComponentInputBinding()),
         { provide: PROJECT_REPOSITORY, useValue: repository },
         { provide: DIAGRAM_RENDERER, useValue: diagrams },
+        { provide: FileExporter, useValue: exporter },
       ],
     });
   });
@@ -270,11 +275,39 @@ describe('SummaryComponent', () => {
       print.mockRestore();
     });
 
+    it('offers to export the design, in the block that is hidden when printing', async () => {
+      const summary = await open(reminders());
+
+      expect(summary.querySelector('.summary__actions sdc-export-menu')).not.toBeNull();
+    });
+
+    it('exports the design of the project on the page', async () => {
+      const summary = await open(reminders());
+
+      summary.querySelector<HTMLElement>('sdc-export-menu summary')?.click();
+      await settle();
+      [...summary.querySelectorAll<HTMLButtonElement>('sdc-export-menu button')]
+        .find((found) => found.textContent?.includes('Download all as one file'))
+        ?.click();
+
+      expect(exporter.downloads.map((download) => download.fileName)).toEqual(['reminders-design-package.md']);
+      expect(exporter.downloads[0].text).toContain('# Reminders: design package');
+      expect(exporter.downloads[0].text).toContain('No-shows cost us chairs');
+    });
+
+    it('offers no export for a project that is not in this browser', async () => {
+      harness = await RouterTestingHarness.create();
+      await harness.navigateByUrl('/projects/missing/summary', SummaryComponent);
+      await settle();
+
+      expect(page().querySelector('sdc-export-menu')).toBeNull();
+    });
+
     it('keeps the links and the Print button out of the content, in one block it can hide when printing', async () => {
       const summary = await open(reminders());
       const actions = summary.querySelector('.summary__actions');
 
-      expect([...(actions?.querySelectorAll('a, button') ?? [])].map((found) => found.textContent?.trim())).toEqual([
+      expect([...(actions?.querySelectorAll('a, .summary__tools > button') ?? [])].map((found) => found.textContent?.trim())).toEqual([
         '← Back to the wizard',
         'Print',
       ]);

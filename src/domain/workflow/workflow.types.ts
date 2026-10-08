@@ -83,10 +83,20 @@ export interface Step {
   readonly slice?: { readonly useCase: string; readonly path: string };
 }
 
+/** One Markdown file of the exported design package, and the steps whose answers it gathers. */
+export interface PackageFileDefinition {
+  readonly path: string;
+  /** The file's heading and its name in the combined document's contents. */
+  readonly title: string;
+  readonly steps: readonly string[];
+}
+
 export interface Workflow {
   readonly mode: ProjectMode;
   readonly title: string;
   /** What the workflow is for, in a sentence: how a user tells it apart from the others when choosing. */
   readonly summary: string;
   readonly steps: readonly Step[];
+  /** How the steps are gathered into the files of the exported package: each step in exactly one file, in workflow order. */
+  readonly designPackage: readonly PackageFileDefinition[];
 }

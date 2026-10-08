@@ -1,0 +1,33 @@
+<details class="export" [open]="open()" (toggle)="toggled($event)">
+  <summary #toggle class="export__toggle button button--small">
+    Export
+    <span aria-hidden="true">&#9662;</span>
+  </summary>
+  <div class="export__menu">
+    <p class="export__heading">The whole design</p>
+    <ul class="export__list">
+      <li>
+        <button type="button" class="export__item" (click)="downloadAll()">
+          Download all as one file
+          <span class="export__name">{{ view().combinedName }}</span>
+        </button>
+      </li>
+      <li>
+        <button type="button" class="export__item" (click)="copyAll()">Copy all as Markdown</button>
+      </li>
+    </ul>
+    <p class="export__heading">One file at a time</p>
+    <ul class="export__list">
+      @for (file of view().files; track file.path) {
+        <li>
+          <button type="button" class="export__item" (click)="downloadFile(file.path)">{{ file.path }}</button>
+        </li>
+      }
+    </ul>
+  </div>
+</details>
+
+<p class="export__status" role="status">{{ done() }}</p>
+@if (failure(); as reason) {
+  <p class="export__status export__status--failed" role="alert">{{ reason }}</p>
+}

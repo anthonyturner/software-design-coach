@@ -1,6 +1,11 @@
 <div class="summary__actions">
   <a class="summary__back" [routerLink]="['/projects', id()]">&larr; Back to the wizard</a>
-  <button type="button" class="button button--primary" (click)="print()">Print</button>
+  <div class="summary__tools">
+    @if (store.openState() === 'open' && store.project(); as project) {
+      <sdc-export-menu [project]="project" />
+    }
+    <button type="button" class="button button--primary" (click)="print()">Print</button>
+  </div>
 </div>
 
 @if (store.openState() === 'open' && summary(); as s) {

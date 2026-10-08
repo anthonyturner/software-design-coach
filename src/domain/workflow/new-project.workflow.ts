@@ -4,6 +4,24 @@ export const newProjectWorkflow: Workflow = {
   mode: 'new-project',
   title: 'New Project',
   summary: 'Plan a system that does not exist yet, from the problem it solves through to a design review.',
+  designPackage: [
+    { path: 'problem.md', title: 'Problem', steps: ['problem', 'users', 'goals', 'non-goals'] },
+    { path: 'requirements.md', title: 'Requirements', steps: ['requirements'] },
+    { path: 'use-cases.md', title: 'Use cases', steps: ['use-cases'] },
+    { path: 'domain-model.md', title: 'Domain model', steps: ['domain-concepts'] },
+    { path: 'system-context.md', title: 'System context', steps: ['system-boundary'] },
+    {
+      path: 'module-design.md',
+      title: 'Module design',
+      steps: ['modules', 'responsibilities', 'information-hiding', 'interfaces'],
+    },
+    { path: 'dependencies.md', title: 'Dependencies', steps: ['dependencies'] },
+    { path: 'architecture.md', title: 'Architecture', steps: ['architecture-options', 'decision'] },
+    { path: 'vertical-slice.md', title: 'First vertical slice', steps: ['first-vertical-slice'] },
+    { path: 'test-strategy.md', title: 'Test strategy', steps: ['tests'] },
+    { path: 'implementation-plan.md', title: 'Implementation plan', steps: ['implementation-plan'] },
+    { path: 'design-review.md', title: 'Design review', steps: ['design-review'] },
+  ],
   steps: [
     {
       id: 'problem',

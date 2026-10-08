@@ -6,6 +6,25 @@ export const featureChangeWorkflow: Workflow = {
   summary:
     'Design a change to a system that already exists: start from what it does and who owns it today, ' +
     'and shape the code before you bolt anything on.',
+  designPackage: [
+    { path: 'problem.md', title: 'Problem', steps: ['change', 'why'] },
+    { path: 'use-cases.md', title: 'Use cases', steps: ['existing-behavior', 'desired-behavior'] },
+    { path: 'domain-model.md', title: 'Domain model', steps: ['affected-concepts'] },
+    { path: 'module-design.md', title: 'Module design', steps: ['current-ownership'] },
+    {
+      path: 'dependencies.md',
+      title: 'Dependencies',
+      steps: ['architecture-impact', 'leakage-coupling-check'],
+    },
+    { path: 'architecture.md', title: 'Architecture', steps: ['alternatives', 'recommended-design'] },
+    { path: 'test-strategy.md', title: 'Test strategy', steps: ['tests'] },
+    {
+      path: 'implementation-plan.md',
+      title: 'Implementation plan',
+      steps: ['smallest-safe-implementation', 'refactoring'],
+    },
+    { path: 'design-review.md', title: 'Design review', steps: ['review'] },
+  ],
   steps: [
     {
       id: 'change',

@@ -11,6 +11,7 @@ import {
   moveEntity as shiftEntity,
   openQuestions,
   removeEntity as dropEntity,
+  setNote as writeNote,
   updateEntity as editEntity,
   workflowFor,
 } from '../domain';
@@ -164,6 +165,11 @@ export class ProjectStore {
         this.change((project, now) => dropEntity(project, kind, change.id, now));
         break;
     }
+  }
+
+  /** Keeps the note on a step. The text is saved as typed; text that is only whitespace clears the note. */
+  setNote(stepId: string, text: string): void {
+    this.change((project, now) => writeNote(project, stepId, text, now));
   }
 
   goTo(stepId: string): void {

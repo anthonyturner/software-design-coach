@@ -26,6 +26,7 @@ function makeOperable(element: SVGElement, name: string, activate: () => void): 
   element.setAttribute('tabindex', '0');
   element.setAttribute('role', 'button');
   element.setAttribute('aria-label', name);
+  element.setAttribute('aria-haspopup', 'dialog');
   element.style.cursor = 'pointer';
   element.addEventListener('click', activate);
   element.addEventListener('keydown', (event) => {

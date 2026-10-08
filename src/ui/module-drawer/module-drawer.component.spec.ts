@@ -113,15 +113,6 @@ describe('ModuleDrawerComponent', () => {
     expect(document.activeElement).toBe(page().querySelector('button'));
   });
 
-  it('asks to be closed on Escape, wherever focus is on the page', async () => {
-    await open(scheduling);
-    document.body.focus();
-
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-
-    expect(closed).toBe(1);
-  });
-
   it('asks to be closed from the Close button', async () => {
     await open(scheduling);
 
@@ -138,14 +129,5 @@ describe('ModuleDrawerComponent', () => {
 
     expect(press.defaultPrevented).toBe(false);
     expect(dialog().hasAttribute('aria-modal')).toBe(false);
-  });
-
-  it('stops listening for Escape once it is gone', async () => {
-    await open(scheduling);
-    fixture.destroy();
-
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-
-    expect(closed).toBe(0);
   });
 });

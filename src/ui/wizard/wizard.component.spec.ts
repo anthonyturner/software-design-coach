@@ -909,8 +909,13 @@ describe('WizardComponent', () => {
       return node;
     }
 
-    async function escape(): Promise<void> {
-      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    /** Presses Escape where focus is, as the browser does, and says whether anything cancelled it. */
+    async function escape(target: Element = document.activeElement ?? document.body, cancelled = false): Promise<void> {
+      const press = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+      if (cancelled) {
+        press.preventDefault();
+      }
+      target.dispatchEvent(press);
       await settle();
     }
 
@@ -979,13 +984,51 @@ describe('WizardComponent', () => {
       expect(document.activeElement).toBe(node);
     });
 
-    it('returns focus to the diagram panel when a redraw has replaced the node', async () => {
+    it('closes on Escape pressed on a node of the diagram, which is where focus can be after Shift+Tab', async () => {
       const page = await open('p1');
       await modules(page);
       const node = await activate('Messaging');
-      node.remove();
+      node.focus();
 
       await escape();
+
+      expect(drawer(page)).toBeNull();
+      expect(document.activeElement).toBe(node);
+    });
+
+    it('leaves the drawer open, and focus where it was, when Escape is pressed in a step field', async () => {
+      const page = await open('p1');
+      await modules(page);
+      await activate('Messaging');
+      const field = fieldLabelled(rows(page)[1], 'What does it own');
+      field.focus();
+
+      await escape();
+
+      expect(heading(page)).toBe('Messaging');
+      expect(document.activeElement).toBe(field);
+    });
+
+    it('leaves the drawer open when something else already used the Escape', async () => {
+      const page = await open('p1');
+      await modules(page);
+      await activate('Messaging');
+
+      await escape(drawer(page) ?? page, true);
+
+      expect(heading(page)).toBe('Messaging');
+    });
+
+    it('returns focus to the diagram panel when a redraw has replaced the node', async () => {
+      const page = await open('p1');
+      await modules(page);
+      await activate('Messaging');
+      await type(rows(page)[1], 'What does it own', 'Sends texts and calls');
+      await settle();
+      diagrams.drawings.at(-1)?.finish();
+      await settle();
+
+      await escape(drawer(page) ?? page);
 
       expect(document.activeElement).toBe(page.querySelector('sdc-diagram-panel section'));
     });

@@ -158,7 +158,7 @@ describe('MermaidDiagramRenderer', () => {
       return found;
     }
 
-    it('makes each named node a focusable button announced by its name, with a pointer cursor', async () => {
+    it('makes each named node a focusable button announced by its name as one that opens a dialog, with a pointer cursor', async () => {
       drawing(['n_m1', 'Scheduling<br/>Owns times'], ['n_m-2', 'Notifier']);
 
       await renderer.render('flowchart TB', host, { nodes: names, onActivate: vi.fn() });
@@ -168,6 +168,7 @@ describe('MermaidDiagramRenderer', () => {
         expect(node.getAttribute('tabindex'), nodeId).toBe('0');
         expect(node.getAttribute('role'), nodeId).toBe('button');
         expect(node.getAttribute('aria-label'), nodeId).toBe(name);
+        expect(node.getAttribute('aria-haspopup'), nodeId).toBe('dialog');
         expect(node.style.cursor, nodeId).toBe('pointer');
       }
     });

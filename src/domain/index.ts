@@ -8,9 +8,7 @@ export {
   entityOptions,
   hasFieldContent,
   isNamed,
-  listField,
   referenceCandidates,
-  textField,
 } from './entity/entities';
 export { entityDefinitions } from './entity/entity-definitions';
 export { ENTITY_KINDS } from './entity/entity.types';

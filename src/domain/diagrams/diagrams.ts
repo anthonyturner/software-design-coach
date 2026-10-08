@@ -1,4 +1,4 @@
-import { isNamed, listField, textField } from '../entity/entities';
+import { entityLabel, isNamed, listField, textField } from '../entity/entities';
 import type { Entity, EntityKind } from '../entity/entity.types';
 import { stepAnswers } from '../project/project';
 import type { Project } from '../project/project.types';
@@ -60,7 +60,7 @@ export function moduleNodes(project: Project, kind: DiagramKind): readonly Modul
   return named(project, 'module').map((module) => ({
     nodeId: nodeId(module.id),
     moduleId: module.id,
-    name: module.name.trim(),
+    name: entityLabel(module, 'module'),
   }));
 }
 

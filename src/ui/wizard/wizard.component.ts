@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal, untracked, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, signal, untracked, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ProjectStore } from '../../app/project-store';
 import { adjacentSteps, diagramFor, moduleDetails, moduleNodes, stepAnswers } from '../../domain';
@@ -28,6 +28,7 @@ function diagramView(project: Project, kind: DiagramKind): DiagramView {
   templateUrl: './wizard.component.html',
   styleUrl: './wizard.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '(keydown.escape)': 'dismissDrawer($event)' },
 })
 export class WizardComponent {
   readonly id = input.required<string>();
@@ -58,6 +59,7 @@ export class WizardComponent {
 
   private readonly openModuleId = signal<string | undefined>(undefined);
   private readonly panel = viewChild(DiagramPanelComponent);
+  private readonly side = viewChild<ElementRef<HTMLElement>>('side');
 
   /** The module whose drawer is open, while the diagram shown still draws it. */
   protected readonly drawer = computed(() => {
@@ -86,6 +88,15 @@ export class WizardComponent {
     const node = this.view()?.diagram?.nodes.find((candidate) => candidate.nodeId === nodeId);
     if (node) {
       this.openModuleId.set(node.moduleId);
+    }
+  }
+
+  /** Escape closes the drawer from inside it or from the diagram, never from a step field, and never when something else already took the key. */
+  protected dismissDrawer(event: Event): void {
+    const inside = event.target instanceof Node && this.side()?.nativeElement.contains(event.target);
+    if (this.openModuleId() !== undefined && inside && !event.defaultPrevented) {
+      event.preventDefault();
+      this.closeDrawer();
     }
   }
 

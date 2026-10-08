@@ -74,6 +74,7 @@ export class DiagramPanelComponent {
     try {
       await this.renderer.render(source, this.canvas().nativeElement, this.interaction());
       if (request === this.latestRequest) {
+        this.lastActivated = undefined;
         this.show('ready', kind);
       }
     } catch (error: unknown) {

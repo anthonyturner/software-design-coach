@@ -4,15 +4,14 @@ import type { ModuleDetails } from '../../domain';
 /**
  * The details of one module, read-only, beside the diagram that opened it. It is a dialog that does
  * not hold the page: focus moves in when it opens and when it is asked to show another module, Tab
- * leaves it like any other part of the page, and Escape or Close hands the decision to its owner,
- * who also decides where focus goes next.
+ * leaves it like any other part of the page, and Close hands the decision to its owner, who also
+ * decides where focus goes next and which Escape presses mean "close".
  */
 @Component({
   selector: 'sdc-module-drawer',
   templateUrl: './module-drawer.component.html',
   styleUrl: './module-drawer.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { '(document:keydown.escape)': 'closed.emit()' },
 })
 export class ModuleDrawerComponent {
   readonly module = input.required<ModuleDetails>();

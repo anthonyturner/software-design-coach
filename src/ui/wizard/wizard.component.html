@@ -24,7 +24,7 @@
           (next)="goTo(v.nextId)"
         />
         @if (v.diagram; as diagram) {
-          <div class="wizard__side">
+          <div #side class="wizard__side">
             <sdc-diagram-panel
               [kind]="diagram.kind"
               [source]="diagram.source"

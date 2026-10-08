@@ -1,8 +1,15 @@
 export { diagramDefinitions } from './diagrams/diagram-definitions';
 export { DIAGRAM_KINDS } from './diagrams/diagram.types';
-export type { DiagramDefinition, DiagramKind } from './diagrams/diagram.types';
-export { diagramFor } from './diagrams/diagrams';
-export { emptyEntities, entityLabel, entityOptions, hasFieldContent, isNamed, referenceCandidates } from './entity/entities';
+export type { DiagramDefinition, DiagramKind, ModuleNode } from './diagrams/diagram.types';
+export { diagramFor, moduleNodes } from './diagrams/diagrams';
+export {
+  emptyEntities,
+  entityLabel,
+  entityOptions,
+  hasFieldContent,
+  isNamed,
+  referenceCandidates,
+} from './entity/entities';
 export { entityDefinitions } from './entity/entity-definitions';
 export { ENTITY_KINDS } from './entity/entity.types';
 export type {
@@ -47,3 +54,5 @@ export type {
   TextQuestion,
   Workflow,
 } from './workflow/workflow.types';
+export { moduleDetails } from './module/module-details';
+export type { ModuleDetails } from './module/module-details';

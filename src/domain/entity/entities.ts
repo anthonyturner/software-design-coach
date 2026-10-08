@@ -152,3 +152,15 @@ function withoutReferenceTo(entity: Entity, kind: EntityKind, removedKind: Entit
   }
   return fields === entity.fields ? entity : { ...entity, fields };
 }
+
+/** What a text field holds; a field the row does not have, or a list field, reads as empty. */
+export function textField(entity: Entity, key: string): string {
+  const value = entity.fields[key];
+  return typeof value === 'string' ? value : '';
+}
+
+/** What a list or references field holds; a field the row does not have, or a text field, reads as empty. */
+export function listField(entity: Entity, key: string): readonly string[] {
+  const value = entity.fields[key];
+  return typeof value === 'string' || value === undefined ? [] : value;
+}

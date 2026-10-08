@@ -22,9 +22,9 @@ describe('DiagramPanelComponent', () => {
 
   const page = (): HTMLElement => fixture.nativeElement as HTMLElement;
   const canvas = (): HTMLElement => {
-    const found = page().querySelector<HTMLElement>('[role="img"]');
+    const found = page().querySelector<HTMLElement>('.diagram__canvas');
     if (!found) {
-      throw new Error('the diagram should have an image to draw into');
+      throw new Error('the diagram should have a canvas to draw into');
     }
     return found;
   };
@@ -172,6 +172,79 @@ describe('DiagramPanelComponent', () => {
       expect(text('[role="status"]')).toBe('Drawing the diagram…');
       expect(text('figcaption')).toBe(diagramDefinitions.module.title);
       expect(renderer.drawings).toHaveLength(2);
+    });
+  });
+
+  describe('with nodes the user can activate', () => {
+    const nodes = new Map([['n_m1', 'Scheduling']]);
+    let activated: string[];
+
+    beforeEach(async () => {
+      activated = [];
+      fixture.componentInstance.nodeActivated.subscribe((nodeId) => activated.push(nodeId));
+      fixture.componentRef.setInput('nodes', nodes);
+      show('module', 'flowchart TB\n  n_m1');
+      await settle();
+      renderer.drawings[0].finish();
+      await settle();
+    });
+
+    function activate(): SVGElement {
+      const node = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      node.setAttribute('tabindex', '0');
+      canvas().append(node);
+      renderer.drawings[0].interaction?.onActivate('n_m1', node);
+      return node;
+    }
+
+    it('asks the renderer to make those nodes operable', () => {
+      expect(renderer.drawings[0].interaction?.nodes).toBe(nodes);
+    });
+
+    it('is a group of operable nodes, so assistive technology can reach them, and says to select one', () => {
+      expect(canvas().getAttribute('aria-label')).toContain('Select a node');
+      expect(canvas().getAttribute('role')).toBe('group');
+    });
+
+    it('reports the node the renderer says was activated', () => {
+      activate();
+
+      expect(activated).toEqual(['n_m1']);
+    });
+
+    it('returns focus to the node that was activated', () => {
+      const node = activate();
+
+      fixture.componentInstance.focusLastNode();
+
+      expect(document.activeElement).toBe(node);
+    });
+
+    it('returns focus to the panel when a redraw has replaced the node', () => {
+      activate().remove();
+
+      fixture.componentInstance.focusLastNode();
+
+      expect(document.activeElement).toBe(page().querySelector('section'));
+    });
+
+    it('returns focus to the panel when nothing was ever activated', () => {
+      fixture.componentInstance.focusLastNode();
+
+      expect(document.activeElement).toBe(page().querySelector('section'));
+    });
+  });
+
+  describe('without nodes to activate', () => {
+    beforeEach(async () => {
+      show('use-case', 'flowchart LR\n  a');
+      await settle();
+    });
+
+    it('asks the renderer for a plain drawing, and presents it as one image', () => {
+      expect(renderer.drawings[0].interaction).toBeUndefined();
+      expect(canvas().getAttribute('role')).toBe('img');
+      expect(canvas().getAttribute('aria-label')).not.toContain('Select a node');
     });
   });
 

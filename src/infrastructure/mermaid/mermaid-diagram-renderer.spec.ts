@@ -126,4 +126,136 @@ describe('MermaidDiagramRenderer', () => {
     expect(mermaid.initialize).toHaveBeenCalledTimes(2);
     expect(host.querySelector('svg')).not.toBeNull();
   });
+
+  describe('with nodes the user can activate', () => {
+    type Node = readonly [nodeId: string, label: string];
+
+    /** Markup shaped like what Mermaid 12 draws: a node group's id is the drawing's id, then `flowchart`, the node id and a counter. */
+    function flowchart(id: string, ...nodes: readonly Node[]): string {
+      const groups = nodes
+        .map(
+          ([nodeId, label], index) =>
+            `<g class="node default" id="${id}-flowchart-${nodeId}-${index}"><rect></rect><g class="label"><text>${label}</text></g></g>`,
+        )
+        .join('');
+      return `<svg id="${id}"><g class="clusters"><g class="cluster" id="${id}-system"></g></g><g class="nodes">${groups}</g></svg>`;
+    }
+
+    function drawing(...nodes: readonly Node[]): void {
+      mermaid.render.mockImplementation((id: string) => Promise.resolve({ svg: flowchart(id, ...nodes) }));
+    }
+
+    const names = new Map([
+      ['n_m1', 'Scheduling'],
+      ['n_m-2', 'Notifier'],
+    ]);
+
+    function nodeOf(nodeId: string): SVGElement {
+      const found = [...host.querySelectorAll<SVGElement>('g.node')].find((group) => group.id.includes(`flowchart-${nodeId}-`));
+      if (!found) {
+        throw new Error(`no node ${nodeId}`);
+      }
+      return found;
+    }
+
+    it('makes each named node a focusable button announced by its name as one that opens a dialog, with a pointer cursor', async () => {
+      drawing(['n_m1', 'Scheduling<br/>Owns times'], ['n_m-2', 'Notifier']);
+
+      await renderer.render('flowchart TB', host, { nodes: names, onActivate: vi.fn() });
+
+      for (const [nodeId, name] of names) {
+        const node = nodeOf(nodeId);
+        expect(node.getAttribute('tabindex'), nodeId).toBe('0');
+        expect(node.getAttribute('role'), nodeId).toBe('button');
+        expect(node.getAttribute('aria-label'), nodeId).toBe(name);
+        expect(node.getAttribute('aria-haspopup'), nodeId).toBe('dialog');
+        expect(node.style.cursor, nodeId).toBe('pointer');
+      }
+    });
+
+    it('leaves a node it was not told about, and a subgraph, as they were', async () => {
+      drawing(['n_m1', 'Scheduling'], ['n_other', 'Other']);
+
+      await renderer.render('flowchart TB', host, { nodes: names, onActivate: vi.fn() });
+
+      expect(nodeOf('n_other').hasAttribute('tabindex')).toBe(false);
+      expect(host.querySelector('.cluster')?.hasAttribute('tabindex')).toBe(false);
+    });
+
+    it('reports the node id and the element on a click', async () => {
+      drawing(['n_m1', 'Scheduling'], ['n_m-2', 'Notifier']);
+      const onActivate = vi.fn();
+      await renderer.render('flowchart TB', host, { nodes: names, onActivate });
+
+      nodeOf('n_m-2').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+      expect(onActivate).toHaveBeenCalledExactlyOnceWith('n_m-2', nodeOf('n_m-2'));
+    });
+
+    it('finds a node whose id ends in a number, since only the last number is the counter', async () => {
+      drawing(['n_a-1-2', 'Odd']);
+      const onActivate = vi.fn();
+      await renderer.render('flowchart TB', host, { nodes: new Map([['n_a-1-2', 'Odd']]), onActivate });
+
+      nodeOf('n_a-1-2').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+      expect(onActivate).toHaveBeenCalledWith('n_a-1-2', expect.anything());
+    });
+
+    it.each([['Enter'], [' ']])('reports the node on the %j key, and stops the page scrolling', async (key) => {
+      drawing(['n_m1', 'Scheduling']);
+      const onActivate = vi.fn();
+      await renderer.render('flowchart TB', host, { nodes: names, onActivate });
+      const press = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+
+      nodeOf('n_m1').dispatchEvent(press);
+
+      expect(onActivate).toHaveBeenCalledExactlyOnceWith('n_m1', nodeOf('n_m1'));
+      expect(press.defaultPrevented).toBe(true);
+    });
+
+    it('ignores other keys, so Tab and the arrows still move around the page', async () => {
+      drawing(['n_m1', 'Scheduling']);
+      const onActivate = vi.fn();
+      await renderer.render('flowchart TB', host, { nodes: names, onActivate });
+      const press = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+
+      nodeOf('n_m1').dispatchEvent(press);
+
+      expect(onActivate).not.toHaveBeenCalled();
+      expect(press.defaultPrevented).toBe(false);
+    });
+
+    it('leaves every node plain when it is given no interaction', async () => {
+      drawing(['n_m1', 'Scheduling']);
+
+      await renderer.render('flowchart TB', host);
+
+      expect(nodeOf('n_m1').hasAttribute('tabindex')).toBe(false);
+      expect(nodeOf('n_m1').hasAttribute('role')).toBe(false);
+    });
+
+    it('wires the newest drawing and not an older one that finished late', async () => {
+      let finishOlder: (drawn: { svg: string }) => void = () => undefined;
+      mermaid.render.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finishOlder = resolve;
+          }),
+      );
+      const olderCalls = vi.fn();
+      const older = renderer.render('flowchart TB', host, { nodes: names, onActivate: olderCalls });
+      await vi.waitFor(() => expect(mermaid.render).toHaveBeenCalledTimes(1));
+      drawing(['n_m1', 'Scheduling']);
+      const newerCalls = vi.fn();
+      await renderer.render('flowchart TB', host, { nodes: names, onActivate: newerCalls });
+
+      finishOlder({ svg: flowchart('sdc-diagram-1', ['n_m1', 'Scheduling']) });
+      await older;
+      nodeOf('n_m1').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+      expect(olderCalls).not.toHaveBeenCalled();
+      expect(newerCalls).toHaveBeenCalledTimes(1);
+    });
+  });
 });

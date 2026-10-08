@@ -4,7 +4,7 @@ import type { EntityEdit, EntityKind } from '../entity/entity.types';
 import { findQuestion, workflowFor } from '../workflow/workflow';
 import { DIAGRAM_KINDS } from './diagram.types';
 import { diagramDefinitions } from './diagram-definitions';
-import { diagramFor } from './diagrams';
+import { diagramFor, moduleNodes } from './diagrams';
 
 const now = '2026-10-08T09:00:00.000Z';
 
@@ -308,6 +308,45 @@ describe('diagramFor', () => {
 
       expect(lines(diagramFor(project, 'system-context'))).toContain('n_end_of__a__line["Receptionist"]');
     });
+  });
+});
+
+describe('moduleNodes', () => {
+  const project = withRow(
+    withRow(withRow(newProject(), 'module', 'm 1', ' Scheduling '), 'module', 'm2', 'Notifier'),
+    'actor',
+    'a1',
+    'Receptionist',
+  );
+
+  it('names the node of every module the module and dependency diagrams draw, with the row it stands for', () => {
+    for (const kind of ['module', 'dependency'] as const) {
+      const nodes = moduleNodes(project, kind);
+
+      expect(nodes, kind).toEqual([
+        { nodeId: 'n_m_1', moduleId: 'm 1', name: 'Scheduling' },
+        { nodeId: 'n_m2', moduleId: 'm2', name: 'Notifier' },
+      ]);
+      for (const { nodeId } of nodes) {
+        expect(lines(diagramFor(project, kind)).some((line) => line.startsWith(`${nodeId}[`)), kind).toBe(true);
+      }
+    }
+  });
+
+  it('leaves out a module with no name, which neither diagram draws', () => {
+    const unnamed = addEntity(project, 'module', 'm3', now);
+
+    expect(moduleNodes(unnamed, 'module').map((node) => node.moduleId)).toEqual(['m 1', 'm2']);
+  });
+
+  it('is empty for a diagram that does not draw modules', () => {
+    for (const kind of DIAGRAM_KINDS.filter((candidate) => candidate !== 'module' && candidate !== 'dependency')) {
+      expect(moduleNodes(project, kind), kind).toEqual([]);
+    }
+  });
+
+  it('is empty while there are no modules', () => {
+    expect(moduleNodes(newProject(), 'module')).toEqual([]);
   });
 });
 

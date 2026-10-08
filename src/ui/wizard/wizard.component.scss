@@ -32,12 +32,29 @@
     gap: var(--sdc-space-5);
     align-items: start;
 
+    &--diagram {
+      grid-template-columns: var(--sdc-rail-width) minmax(0, 3fr) minmax(0, 2fr);
+    }
+
     @include breakpoints.narrow {
       grid-template-columns: minmax(0, 1fr);
+
+      &--diagram {
+        grid-template-columns: minmax(0, 1fr);
+      }
     }
   }
 
   &__rail {
+    position: sticky;
+    top: var(--sdc-space-5);
+
+    @include breakpoints.narrow {
+      position: static;
+    }
+  }
+
+  &__diagram {
     position: sticky;
     top: var(--sdc-space-5);
 

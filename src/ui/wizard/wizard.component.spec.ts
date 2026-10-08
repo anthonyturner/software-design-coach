@@ -2,13 +2,16 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { routes } from '../../app/app.routes';
+import { DIAGRAM_RENDERER } from '../../app/diagram-renderer';
 import { PROJECT_REPOSITORY } from '../../app/project-repository';
+import { FakeDiagramRenderer } from '../../app/testing/fake-diagram-renderer';
 import { InMemoryProjectRepository } from '../../app/testing/in-memory-project-repository';
 import { createProject, goTo as moveTo, workflowFor } from '../../domain';
 import { WizardComponent } from './wizard.component';
 
 describe('WizardComponent', () => {
   let repository: InMemoryProjectRepository;
+  let diagrams: FakeDiagramRenderer;
   let harness: RouterTestingHarness;
 
   function configure(): void {
@@ -16,6 +19,7 @@ describe('WizardComponent', () => {
       providers: [
         provideRouter(routes, withComponentInputBinding()),
         { provide: PROJECT_REPOSITORY, useValue: repository },
+        { provide: DIAGRAM_RENDERER, useValue: diagrams },
       ],
     });
   }
@@ -138,6 +142,7 @@ describe('WizardComponent', () => {
 
   beforeEach(async () => {
     repository = new InMemoryProjectRepository();
+    diagrams = new FakeDiagramRenderer();
     await repository.save(
       createProject({ id: 'p1', name: 'Reminders', mode: 'new-project', now: '2026-10-08T09:00:00.000Z' }),
     );
@@ -821,6 +826,55 @@ describe('WizardComponent', () => {
       const described = group?.getAttribute('aria-describedby')?.split(' ').map((id) => page.querySelector(`#${id}`)?.textContent);
 
       expect(described).toEqual(['No architecture options named yet. Name them in an earlier step, then come back.']);
+    });
+  });
+
+  describe('the diagram beside a step', () => {
+    const panel = (page: HTMLElement): HTMLElement | null => page.querySelector('sdc-diagram-panel');
+
+    it('shows none on a step that declares no diagram, and gives the step the whole width', async () => {
+      const page = await open('p1');
+
+      expect(stepTitle(page)).toBe('Problem');
+      expect(panel(page)).toBeNull();
+      expect(page.querySelector('.wizard__layout--diagram')).toBeNull();
+    });
+
+    it('shows the diagram the step declares, with a note on what to name while the model has nothing to draw', async () => {
+      const page = await open('p1');
+
+      await goTo(page, 'Users');
+
+      expect(panel(page)?.querySelector('.diagram__caption')?.textContent).toBe('System context');
+      expect(panel(page)?.textContent).toContain('Name an actor or an outside system');
+      expect(page.querySelector('.wizard__layout--diagram')).not.toBeNull();
+      expect(diagrams.drawings).toHaveLength(0);
+    });
+
+    it('draws what the user has answered, from the model, and offers its source as text', async () => {
+      const page = await open('p1');
+      await goTo(page, 'Users');
+      await press(page, 'Add actor');
+
+      await type(page, 'Role', 'Receptionist');
+      await settle();
+
+      expect(diagrams.drawings).toHaveLength(1);
+      expect(diagrams.drawings[0].source).toMatch(/^flowchart LR\n/);
+      expect(diagrams.drawings[0].source).toContain('["Receptionist"]');
+      expect(panel(page)?.querySelector('details pre')?.textContent).toBe(diagrams.drawings[0].source);
+    });
+
+    it('changes the diagram with the step, so a step is always shown the diagram it declares', async () => {
+      const page = await open('p1');
+      await goTo(page, 'Users');
+      await press(page, 'Add actor');
+      await type(page, 'Role', 'Receptionist');
+
+      await goTo(page, 'Modules');
+
+      expect(panel(page)?.querySelector('.diagram__caption')?.textContent).toBe('Modules');
+      expect(panel(page)?.textContent).toContain('Name a module');
     });
   });
 });

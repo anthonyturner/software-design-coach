@@ -1,0 +1,35 @@
+<section class="diagram" aria-labelledby="diagram-heading">
+  <h3 class="diagram__label" id="diagram-heading">Visualize</h3>
+  <figure class="diagram__figure">
+    <div
+      #canvas
+      class="diagram__canvas"
+      role="img"
+      [attr.aria-label]="definition().title + ' diagram. Its source is listed below as text.'"
+      [hidden]="state() !== 'ready'"
+    ></div>
+    @switch (state()) {
+      @case ('loading') {
+        <p class="diagram__message" role="status">Drawing the diagram&hellip;</p>
+      }
+      @case ('empty') {
+        <p class="diagram__message" role="status">{{ definition().emptyText }}</p>
+      }
+      @case ('error') {
+        <p class="diagram__message diagram__message--error" role="alert">
+          This diagram could not be drawn. Your answers are safe, and the source below still shows what it holds.
+          @if (problem()) {
+            <span class="diagram__reason">{{ problem() }}</span>
+          }
+        </p>
+      }
+    }
+    <figcaption class="diagram__caption">{{ definition().title }}</figcaption>
+  </figure>
+  @if (source(); as text) {
+    <details class="diagram__source">
+      <summary class="diagram__source-toggle">View diagram source</summary>
+      <pre class="diagram__source-text"><code>{{ text }}</code></pre>
+    </details>
+  }
+</section>

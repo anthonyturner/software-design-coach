@@ -38,6 +38,19 @@ describe('ChoiceFieldComponent', () => {
     expect(new Set(radios(page).map((radio) => radio.name)).size).toBe(1);
   });
 
+  it('says more under an option that has a detail, as part of the same label', () => {
+    const fixture = TestBed.createComponent(ChoiceFieldComponent);
+    fixture.componentRef.setInput('question', {
+      ...question,
+      options: [{ value: 'application', label: 'An application', detail: 'People use it directly.' }, question.options[1]],
+    });
+    fixture.detectChanges();
+
+    const labels = [...(fixture.nativeElement as HTMLElement).querySelectorAll('label')];
+    expect(labels.map((label) => label.querySelector('.choice__detail')?.textContent)).toEqual(['People use it directly.', undefined]);
+    expect(labels[0].textContent).toContain('An application');
+  });
+
   it('checks the option that is the current answer', () => {
     const { page } = render('service');
 

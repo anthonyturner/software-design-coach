@@ -16,7 +16,12 @@
         [checked]="option.checked"
         (change)="answered.emit(option.value)"
       />
-      <span>{{ option.label }}</span>
+      <span class="choice__text">
+        <span class="choice__label">{{ option.label }}</span>
+        @if (option.detail; as detail) {
+          <span class="choice__detail">{{ detail }}</span>
+        }
+      </span>
     </label>
   }
 </fieldset>

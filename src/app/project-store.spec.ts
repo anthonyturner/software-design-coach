@@ -57,6 +57,32 @@ describe('ProjectStore', () => {
       expect((await repository.load(id))?.['name']).toBe('Reminders');
     });
 
+    it('follows the workflow of the mode chosen, for the step, the journey and the count', async () => {
+      const store = configure();
+
+      await store.create('Cancel by text', 'feature-change');
+
+      expect(store.workflow()?.title).toBe('Feature / Change');
+      expect(store.currentStep()?.id).toBe('change');
+      expect(store.journey()).toHaveLength(14);
+      expect(store.openQuestionCount()).toBe(2);
+    });
+
+    it('resumes a Feature / Change project from storage on its own step, with its answers', async () => {
+      const first = configure();
+      const id = await first.create('Cancel by text', 'feature-change');
+      first.answer('change', 'change', 'A patient can cancel by replying CANCEL');
+      first.goTo('why');
+      await first.flush();
+
+      const second = configure();
+      await second.open(id);
+
+      expect(second.currentStep()?.id).toBe('why');
+      expect(second.project()?.answers['change']?.['change']).toBe('A patient can cancel by replying CANCEL');
+      expect(second.openState()).toBe('open');
+    });
+
     it('lists the most recently changed project first', async () => {
       const store = configure();
       await store.create('Older', 'new-project');

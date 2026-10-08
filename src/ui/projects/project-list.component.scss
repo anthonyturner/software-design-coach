@@ -14,12 +14,11 @@
 
   &__create {
     display: grid;
-    gap: var(--sdc-space-2);
+    gap: var(--sdc-space-3);
   }
 
-  &__create-row {
-    display: flex;
-    gap: var(--sdc-space-3);
+  &__submit {
+    justify-self: start;
   }
 
   &__list {

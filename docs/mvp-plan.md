@@ -93,14 +93,15 @@ flowchart TB
 | `domain/diagrams` | Mermaid syntax and how each diagram kind is derived from the model. | `diagramFor(project, kind)` → Mermaid text. |
 | `domain/package` | The design package's file list and Markdown templates. | `buildPackage(project)` → `{ path, markdown }[]`. |
 | `app/ProjectStore` | Which project is open, the current step, autosave timing, schema migration on load. The only writer of project state. | `project` / `currentStep` signals, `open(id)`, `answer(...)`, `goTo(stepId)`, `addNote(...)`. |
-| `infrastructure/storage` | `localStorage` keys, serialization, the stored schema version. | `ProjectRepository`: `list()`, `load(id)`, `save(project)`, `remove(id)`. |
+| `infrastructure/storage` | `localStorage` keys, serialization, the stored schema version. | `ProjectRepository`: `list()`, `load(id)`, `save(project)`, `remove(id)`, each returning a `Promise`. |
 | `infrastructure/mermaid` | Mermaid's API, lazy-loading it, theming it dark, click callbacks. | `DiagramRenderer.render(source, host)`. |
 
 Why these seams, and only these:
 
 - **ProjectRepository** is a port because storage is the one dependency the
-  spec already says will change (local now, sync later). IndexedDB or a backend
-  then means one new adapter.
+  spec already says will change (local now, sync later). The port is
+  promise-based, so IndexedDB or a backend then means one new adapter
+  ([ADR-0008](decisions/0008-persist-projects-in-localstorage.md)).
 - **DiagramRenderer** is a port because Mermaid is a large, foreign,
   browser-only library; keeping it out of the domain means diagram generation
   is tested as plain strings, fast, without a DOM.
@@ -111,12 +112,12 @@ Why these seams, and only these:
 
 ## 4. Technology
 
-| Choice | Recommendation | Why |
+| Choice | Decision | Why |
 | --- | --- | --- |
 | Framework | Current Angular, standalone components, **signals**, zoneless change detection, strict TypeScript | Spec §12; signals + OnPush match the installed Angular rules. |
 | Styling | SCSS with **design tokens as CSS custom properties** and a small set of own components; **no Bootstrap** | Spec §13 asks for a distinctive dark developer-tool look and warns against a generic SaaS feel, which is Bootstrap's default. Our needs (rail, panels, forms, tabs, drawer) are small. **([ADR-0006](decisions/0006-build-our-own-component-system.md))** |
 | Diagrams | `mermaid` npm package, lazy-loaded | Versioned and offline-capable, unlike a CDN script; lazy-loading keeps the first paint light. **([ADR-0007](decisions/0007-bundle-mermaid-from-npm.md))** |
-| Persistence | `localStorage`, one key per project plus an index, with a schema version | A design project is tens of KB; localStorage is synchronous and simple. IndexedDB is a later adapter if size demands it. **([ADR-0008](decisions/0008-persist-projects-in-localstorage.md))** |
+| Persistence | `localStorage`, one key per project plus an index, with a schema version | A design project is tens of KB; localStorage is simple and needs no setup. The repository port is promise-based, so IndexedDB is a later adapter if size demands it. **([ADR-0008](decisions/0008-persist-projects-in-localstorage.md))** |
 | Unit tests | Vitest (the Angular CLI default) | Fast; the domain layer needs no browser. |
 | Lint | angular-eslint | Standard for Angular. |
 | Commit hooks | husky + commitlint, as suggested by the installed TypeScript pack | Enforces the commit format the playbook expects. |

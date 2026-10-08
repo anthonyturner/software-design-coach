@@ -12,7 +12,8 @@ and spec §12 asks that the app itself be an example of them. Its own code is
 the first design a user may read.
 
 Two of its dependencies are known to be volatile or foreign: storage (local
-now, possibly IndexedDB or sync later — spec §15) and Mermaid (a large,
+now; IndexedDB if projects grow, and sync if collaboration — spec §15 —
+arrives) and Mermaid (a large,
 browser-only library). The core logic — the model, the workflows, generating
 diagram text and Markdown — needs neither, and it is where test-first
 development ([rule 17](../rules.md)) pays off most, provided it runs without a
@@ -38,8 +39,9 @@ only:
 There are **exactly two ports** (interfaces an inner layer declares and an
 adapter implements):
 
-- `ProjectRepository` — `list`, `load`, `save`, `remove`, implemented by the
-  `localStorage` adapter.
+- `ProjectRepository` — `list`, `load`, `save`, `remove`, each returning a
+  `Promise`, implemented by the `localStorage` adapter
+  ([ADR-0008](0008-persist-projects-in-localstorage.md)).
 - `DiagramRenderer` — `render(source, host)`, implemented by the Mermaid
   adapter.
 
@@ -63,12 +65,17 @@ first needs it, not before.
   storage. The product could no longer point at its own code as an example.
 - **Full hexagonal or clean architecture** — a port for every external call,
   a use-case class per action, mapping objects at each boundary. Rejected as
-  classitis for an app this size: most of those interfaces would have one
+  classitis (too many small classes, each adding a sliver) for an app this
+  size: most of those interfaces would have one
   implementation and one caller, and cost more to read than they hide.
-- **No ports: call `localStorage` and Mermaid directly from services.**
-  Simplest today. Rejected because these are the two parts most likely to
-  change, and a direct Mermaid dependency would pull a DOM into every diagram
-  test.
+- **No ports: concrete Angular services wrapping `localStorage` and Mermaid,
+  replaced in tests through dependency injection.** Simplest today, and
+  diagram *text* is tested in `domain/` either way. Rejected because each
+  service's real interface would then be whatever its class happens to expose,
+  and both already have a second implementation that justifies a declared
+  contract: the in-memory repository and the fake renderer that store and
+  component tests use instead of real storage and Mermaid's real-browser
+  rendering. Storage also has a likely third (IndexedDB).
 
 ## Consequences
 

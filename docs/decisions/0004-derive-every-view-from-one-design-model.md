@@ -8,10 +8,10 @@
 ## Context
 
 The coach walks a developer through up to 19 steps and then shows the result
-back in several forms: Mermaid diagrams (system context, use case, domain
-model, module, dependency, first slice), a design summary, and a Markdown
-design package of a dozen files ([product-spec.md](../product-spec.md) §6,
-§10). Later it also has to critique the design — find dependency cycles,
+back in several forms: the MVP's six Mermaid diagrams (system context, use
+case, domain model, module, dependency, first slice — of the nine kinds in
+[product-spec.md](../product-spec.md) §6), a design summary, and a Markdown
+design package (up to fifteen files, §10). Later it also has to critique the design — find dependency cycles,
 shallow modules, knowledge with no owner (§8).
 
 None of that is possible from free text. A module diagram needs to know what
@@ -54,7 +54,7 @@ that model. Views hold no state of their own and are never edited directly.
 - **Harder, and what it costs.**
   - The step format is heavier: every question declares an answer kind, and
     entity lists need a real editing UI (add, rename and remove rows, pick
-    dependencies) rather than a text box. Slice 2 carries most of that cost.
+    dependencies) rather than a text box. Slices 2a and 2b carry most of that cost.
   - Some answers resist structure. Whatever the model does not capture
     (nuance, caveats) can only appear in the views as quoted prose.
   - Users cannot hand-tune a generated diagram. If Mermaid's layout is poor,
@@ -63,7 +63,8 @@ that model. Views hold no state of their own and are never edited directly.
     migration ([ADR-0008](0008-persist-projects-in-localstorage.md)).
 - **What now has to be true.** The model has exactly one writer, the
   `ProjectStore`. A view function takes the model and returns a value; it
-  never stores, mutates or caches it across projects. References between
+  never mutates it and keeps no copy of it or of its own output between
+  calls; any caching is Angular's `computed()` at the call site. References between
   entities (a module's dependencies) point at ids, not names, so a rename does
   not break them.
 

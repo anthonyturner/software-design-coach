@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-10-08
 - **Deciders:** Anthony Turner (maintainer), answering open question 1 of the MVP plan
-- **Related:** [mvp-plan.md](../mvp-plan.md) §4, [product-spec.md](../product-spec.md) §12–13, [stack/ui-components.md](../stack/ui-components.md), issue [#3](https://github.com/anthonyturner/software-design-coach/issues/3)
+- **Related:** [mvp-plan.md](../mvp-plan.md) §4–5, [product-spec.md](../product-spec.md) §12–13, [stack/ui-components.md](../stack/ui-components.md), issue [#3](https://github.com/anthonyturner/software-design-coach/issues/3)
 
 ## Context
 
@@ -12,10 +12,10 @@ Spec §13 then sets the look: a professional developer-tool aesthetic, dark,
 with a subtle grid feel, restrained accents and strong typography, and it
 explicitly rules out a generic SaaS-dashboard look.
 
-The MVP's UI needs are small and known: a journey rail, three panels (step,
-visualize, notes), form controls including an editable entity table, tabs, a
-disclosure ("why am I asked?"), a details drawer and buttons. There is no data
-grid, date picker or complex overlay.
+The MVP's UI needs are small and known (plan §5): a journey rail, a step panel
+(with collapsible notes) and a visualize panel; form controls including an
+editable entity table; tabs; a disclosure ("why am I asked?"); a details
+drawer; buttons. There is no data grid, date picker or complex overlay.
 
 ## Decision
 
@@ -26,21 +26,26 @@ above. The dark theme is the default. No Bootstrap, and no other UI kit.
 
 ## Alternatives considered
 
-- **Bootstrap with a custom dark theme.** Fastest route to accessible forms,
-  a grid and utilities, and widely known. Rejected: its defaults are the
-  generic look spec §13 rules out, and overriding them enough to escape it
-  means fighting the framework's variables and specificity in every component.
-  We would ship roughly 30 KB of CSS for a few controls.
-- **Angular Material or the Angular CDK's styled components.** Strong
-  accessibility and real Angular integration. Rejected for the look: Material
-  Design is as recognisable as Bootstrap, and theming it towards a
-  developer-tool feel is heavy. (The unstyled CDK behaviours remain an option
-  for a hard widget later, as a separate dependency decision under
-  [rule 6](../rules.md).)
+- **Bootstrap 5 with a custom dark theme.** Fastest route to accessible forms,
+  a grid and utilities; widely known; it has a built-in dark colour mode and is
+  customised through Sass variables, and importing only the needed partials
+  keeps it small. Rejected for two reasons. Its defaults are the generic look
+  spec §13 rules out, so every component would be restyled away from them. And
+  its interactive parts (tabs, collapse, offcanvas drawer) are plain JavaScript
+  that changes the page outside Angular, so an Angular app normally adds
+  ng-bootstrap or ngx-bootstrap on top — a second dependency to reach the few
+  controls we need.
+- **Angular Material** (the styled components built on the Angular CDK).
+  Strong accessibility and real Angular integration. Rejected for the look:
+  Material Design is as recognisable as Bootstrap, and theming it towards a
+  developer-tool feel is heavy. (The CDK's unstyled behaviours — focus trap,
+  overlay — remain an option for a hard widget later, as a separate dependency
+  decision under [rule 6](../rules.md).)
 - **A utility-first framework such as Tailwind.** Flexible enough for any
-  look. Rejected: it moves design decisions into every template's class list
-  rather than one set of tokens, adds a build step and a new dependency, and
-  BEM plus tokens is already the stack's convention.
+  look, and the Angular CLI runs it through its existing PostCSS step.
+  Rejected: it moves design decisions into every template's class list rather
+  than one set of tokens, adds a dependency, and BEM plus tokens is already the
+  stack's convention.
 
 ## Consequences
 

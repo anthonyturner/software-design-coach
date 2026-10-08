@@ -70,6 +70,23 @@ describe('LocalStorageProjectRepository', () => {
       expect(stored && migrateProject(stored)).toEqual(saved);
     });
 
+    it('gives back a Feature / Change project with its mode, listed under that mode', async () => {
+      const at = '2026-10-08T09:01:00.000Z';
+      const saved = answer(
+        createProject({ id: 'f1', name: 'Cancel by text', mode: 'feature-change', now: at }),
+        'why',
+        'value',
+        'The desk stops phoning',
+        at,
+      );
+
+      await repository.save(saved);
+      const stored = await repository.load('f1');
+
+      expect(stored && migrateProject(stored)).toEqual(saved);
+      expect((await repository.list()).map((summary) => summary.mode)).toEqual(['feature-change']);
+    });
+
     it('still opens, lists and re-saves a project written by the walking skeleton (schema 1)', async () => {
       const slice1 = {
         schemaVersion: 1,

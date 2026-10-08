@@ -6,9 +6,8 @@
   border: 0;
 
   &__option {
-    display: flex;
-    align-items: center;
-    gap: var(--sdc-space-3);
+    display: grid;
+    gap: var(--sdc-space-1);
     padding: var(--sdc-space-2) var(--sdc-space-3);
     border: var(--sdc-border-width) solid var(--sdc-color-border);
     border-radius: var(--sdc-radius-sm);
@@ -25,6 +24,19 @@
     &:has(:focus-visible) {
       outline: var(--sdc-focus-ring-width) solid var(--sdc-color-focus);
     }
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: var(--sdc-space-3);
+    cursor: pointer;
+  }
+
+  &__detail {
+    padding-left: calc(var(--sdc-space-3) + 1rem);
+    color: var(--sdc-color-text-muted);
+    font-size: var(--sdc-font-size-sm);
   }
 
   &__radio {

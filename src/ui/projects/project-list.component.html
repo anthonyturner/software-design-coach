@@ -4,10 +4,9 @@
 
   <form class="projects__create" (submit)="create($event, name.value)">
     <label class="field__label" for="project-name">Name a new project</label>
-    <div class="projects__create-row">
-      <input #name class="field__input" id="project-name" type="text" autocomplete="off" />
-      <button type="submit" class="button button--primary" [disabled]="creating()">Create project</button>
-    </div>
+    <input #name class="field__input" id="project-name" type="text" autocomplete="off" />
+    <sdc-choice-field [question]="modeQuestion" [value]="mode()" (answered)="chooseMode($event)" />
+    <button type="submit" class="button button--primary projects__submit" [disabled]="creating()">Create project</button>
   </form>
 
   @if (rows().length > 0) {

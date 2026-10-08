@@ -208,3 +208,23 @@ describe('a decision', () => {
     expect(openQuestions(blanked, stepNamed('decision')).map((question) => question.id)).toEqual(['chosen']);
   });
 });
+
+describe('the journey of a Feature / Change project', () => {
+  const featureChange = createProject({ id: 'f1', name: 'Cancel by text', mode: 'feature-change', now });
+
+  it('lists the fourteen steps of its own workflow, starting on the first', () => {
+    const stops = journeyOf(featureChange);
+
+    expect(stops).toHaveLength(14);
+    expect(stops[0]).toMatchObject({ stepId: 'change', title: 'Change', number: 1, state: 'current' });
+    expect(stops[13]).toMatchObject({ stepId: 'review', title: 'Review', number: 14, state: 'not-started' });
+  });
+
+  it('counts a step done once its own required questions are answered', () => {
+    const asked = findStep(workflowFor('feature-change'), 'why')?.questions.filter((question) => !question.optional) ?? [];
+    const answered = asked.reduce((project, question) => answer(project, 'why', question.id, 'something', now), featureChange);
+
+    expect(journeyOf(answered).find((stop) => stop.stepId === 'why')?.state).toBe('done');
+    expect(journeyOf(answer(featureChange, 'why', asked[0].id, 'something', now)).find((stop) => stop.stepId === 'why')?.state).toBe('in-progress');
+  });
+});

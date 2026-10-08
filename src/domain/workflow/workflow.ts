@@ -1,8 +1,10 @@
+import { featureChangeWorkflow } from './feature-change.workflow';
 import { newProjectWorkflow } from './new-project.workflow';
 import type { ProjectMode, Question, Step, Workflow } from './workflow.types';
 
 const workflows: Readonly<Record<ProjectMode, Workflow>> = {
   'new-project': newProjectWorkflow,
+  'feature-change': featureChangeWorkflow,
 };
 
 export function workflowFor(mode: ProjectMode): Workflow {
@@ -15,6 +17,14 @@ export function findStep(workflow: Workflow, stepId: string): Step | undefined {
 
 export function findQuestion(workflow: Workflow, stepId: string, questionId: string): Question | undefined {
   return findStep(workflow, stepId)?.questions.find((question) => question.id === questionId);
+}
+
+/** Where a workflow has the user choose and trace the first slice, if it has such a step. */
+export function findSlice(
+  workflow: Workflow,
+): { readonly stepId: string; readonly useCase: string; readonly path: string } | undefined {
+  const step = workflow.steps.find((candidate) => candidate.slice !== undefined);
+  return step?.slice && { stepId: step.id, ...step.slice };
 }
 
 export function adjacentSteps(

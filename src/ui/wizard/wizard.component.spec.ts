@@ -1094,4 +1094,185 @@ describe('WizardComponent', () => {
       expect(text).toContain('Reminders');
     });
   });
+
+  describe('a Feature / Change project', () => {
+    const panel = (page: HTMLElement): HTMLElement | null => page.querySelector('sdc-diagram-panel');
+    const caption = (page: HTMLElement): string | null | undefined => panel(page)?.querySelector('.diagram__caption')?.textContent;
+
+    async function addRow(page: HTMLElement, noun: string, index: number, label: string, name: string): Promise<void> {
+      await press(page, `Add ${noun}`);
+      await type(rows(page)[index], label, name);
+    }
+
+    async function fill(page: HTMLElement, answers: readonly (readonly [string, string])[]): Promise<void> {
+      for (const [label, text] of answers) {
+        await type(page, label, text);
+      }
+    }
+
+    async function walk(page: HTMLElement): Promise<void> {
+      await fill(page, [['What is changing', 'A patient can cancel by replying CANCEL']]);
+      await click(radios(page)[0]);
+      await press(page, 'Continue');
+      await fill(page, [
+        ['Who benefits', 'The desk stops phoning'],
+        ['What happens if you do not make this change', 'The calls carry on'],
+      ]);
+      await press(page, 'Continue');
+      await fill(page, [['What does the system do today', 'Texts a reminder and reads yes']]);
+      await addRow(page, 'actor', 0, 'Role', 'Patient');
+      await fill(page, [['What must keep working', 'A yes still confirms']]);
+      await press(page, 'Continue');
+      await addRow(page, 'use case', 0, 'Use case', 'Patient cancels by text');
+      await pickReference(rows(page)[0], 'Patient');
+      await press(page, 'Continue');
+      await addRow(page, 'concept', 0, 'Concept', 'Appointment');
+      await fill(page, [['Which of these change meaning', 'Appointment can now be cancelled']]);
+      await press(page, 'Continue');
+      await addRow(page, 'module', 0, 'Module', 'Reminders');
+      await addRow(page, 'module', 1, 'Module', 'Messaging');
+      await type(rows(page)[1], 'What does it know', 'The provider and its formats');
+      await fill(page, [['known by more than one module', 'What a yes means']]);
+      await press(page, 'Continue');
+      await pickReference(rows(page)[0], 'Messaging');
+      await fill(page, [['Which modules have to change', 'Reminders inside, Scheduling at its interface']]);
+      await press(page, 'Continue');
+      await fill(page, [['would you have to edit', 'Messaging and Reminders']]);
+      await click(radios(page)[1]);
+      await press(page, 'Continue');
+      await addRow(page, 'architecture option', 0, 'Option', 'Interpret in Reminders');
+      await addRow(page, 'architecture option', 1, 'Option', 'Extend Messaging');
+      await fill(page, [['How do they compare', 'The first hides more']]);
+      await press(page, 'Continue');
+      await click(radios(page)[0]);
+      await fill(page, [['Why this one', 'Reminders owns the rules']]);
+      await press(page, 'Continue');
+      await fill(page, [
+        ['How will you pin down', 'Characterise the yes reply first'],
+        ['first test of the new behaviour', 'handleReply cancels the appointment'],
+      ]);
+      await press(page, 'Continue');
+      await click(radios(page)[0]);
+      await fill(page, [
+        ['Trace it through the modules', 'Messaging hands the reply to Reminders'],
+        ['How will you keep it safe', 'Behind a setting that is off'],
+      ]);
+      await press(page, 'Continue');
+      await fill(page, [
+        ['reshape first', 'Move the yes handling into Reminders'],
+        ['leave behind', 'The keyword list in Messaging'],
+      ]);
+      await press(page, 'Continue');
+      await fill(page, [['least sure about', 'Reminders may grow']]);
+      await click(radios(page)[1]);
+    }
+
+    beforeEach(async () => {
+      await repository.save(
+        createProject({ id: 'f1', name: 'Cancel by text', mode: 'feature-change', now: '2026-10-08T09:00:00.000Z' }),
+      );
+    });
+
+    it('opens on its own first step, in its own workflow', async () => {
+      const page = await open('f1');
+
+      expect(page.querySelector('.wizard__mode')?.textContent).toBe('Feature / Change');
+      expect(stepTitle(page)).toBe('Change');
+      expect(page.textContent).toContain('Step 1 of 14');
+      expect(page.querySelectorAll('.rail__step')).toHaveLength(14);
+      expect(page.querySelector('.step__think')?.textContent).toBe(workflowFor('feature-change').steps[0].think);
+    });
+
+    it('walks a few steps, and resumes where it was left after a reload', async () => {
+      const page = await open('f1');
+      await type(page, 'What is changing', 'A patient can cancel by replying CANCEL');
+      await click(radios(page)[0]);
+      await press(page, 'Continue');
+      await type(page, 'Who benefits', 'The desk stops phoning');
+      await goTo(page, 'Current Ownership');
+      await addRow(page, 'module', 0, 'Module', 'Reminders');
+      await type(rows(page)[0], 'What does it know', 'Timing rules');
+
+      const reloaded = await reload('f1');
+
+      expect(stepTitle(reloaded)).toBe('Current Ownership');
+      expect(fieldLabelled(rows(reloaded)[0], 'What does it know').value).toBe('Timing rules');
+      await goTo(reloaded, 'Why');
+      expect(fieldLabelled(reloaded, 'Who benefits').value).toBe('The desk stops phoning');
+      await goTo(reloaded, 'Change');
+      expect(fieldLabelled(reloaded, 'What is changing').value).toBe('A patient can cancel by replying CANCEL');
+      expect(chosenRadio(reloaded)).toContain('New');
+    });
+
+    it('challenges each step with its own prompts, from the workflow data', async () => {
+      const page = await open('f1');
+      await goTo(page, 'Leakage/Coupling Check');
+      const step = workflowFor('feature-change').steps[7];
+
+      expect(stepTitle(page)).toBe('Leakage/Coupling Check');
+      expect([...page.querySelectorAll('.step__challenges li')].map((item) => item.textContent)).toEqual([...step.challenges]);
+    });
+
+    it('draws the diagram each step declares, from the same model', async () => {
+      const page = await open('f1');
+      await goTo(page, 'Affected Concepts');
+      expect(caption(page)).toBe('Domain model');
+
+      await goTo(page, 'Current Ownership');
+      await addRow(page, 'module', 0, 'Module', 'Reminders');
+      expect(caption(page)).toBe('Modules');
+      await settle();
+      expect(diagrams.drawings.at(-1)?.source).toContain('"Reminders');
+
+      await goTo(page, 'Architecture Impact');
+      expect(caption(page)).toBe('Dependencies');
+      await goTo(page, 'Why');
+      expect(panel(page)).toBeNull();
+    });
+
+    it('draws the chosen behaviour on its Smallest Safe Implementation step', async () => {
+      const page = await open('f1');
+      await goTo(page, 'Desired Behavior');
+      await addRow(page, 'use case', 0, 'Use case', 'Patient cancels by text');
+      await goTo(page, 'Smallest Safe Implementation');
+      expect(caption(page)).toBe('First vertical slice');
+      expect(panel(page)?.textContent).toContain('Choose the use case to build first');
+
+      await click(radios(page)[0]);
+      await settle();
+
+      const source = diagrams.drawings.at(-1)?.source ?? '';
+      expect(source).toContain('(["Patient cancels by text"])');
+      expect(source).not.toContain('subgraph');
+    });
+
+    it('can be completed from the first step to the last, every step ending up done', async () => {
+      const page = await open('f1');
+
+      await walk(page);
+
+      expect(stepTitle(page)).toBe('Review');
+      expect(page.textContent).toContain('Step 14 of 14');
+      expect(navButtons(page)).toEqual(['Back']);
+      const states = [...page.querySelectorAll('.rail__step')].map(
+        (step) => step.querySelector('.rail__state')?.textContent ?? '',
+      );
+      expect(states).toHaveLength(14);
+      expect(states.slice(0, 13).every((state) => state === ', done')).toBe(true);
+      expect(page.querySelector('.step__status')?.textContent).toBe('Every required question on this step is answered.');
+    });
+
+    it('is all still there after a reload', async () => {
+      const page = await open('f1');
+      await walk(page);
+
+      const reloaded = await reload('f1');
+
+      expect(stepTitle(reloaded)).toBe('Review');
+      await goTo(reloaded, 'Recommended Design');
+      expect(chosenRadio(reloaded)).toBe('Interpret in Reminders');
+      await goTo(reloaded, 'Architecture Impact');
+      expect(references(rows(reloaded)[0])).toEqual([{ label: 'Messaging', checked: true }]);
+    });
+  });
 });

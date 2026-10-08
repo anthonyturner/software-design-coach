@@ -21,7 +21,9 @@ so a missing line costs more than a long one.
   backend, no external services, no AI provider calls in the MVP.
 - Build: Angular CLI (`npm run build`), with an initial-bundle budget in
   `angular.json` that fails the build if Mermaid lands in the main bundle
-  (ADR-0007). Tests: Vitest through `ng test` on jsdom (`npm test`). Lint:
+  (ADR-0007). Both routes and the storage adapter load on demand, so the
+  workflow content, which is most of the domain, stays out of the initial
+  bundle. Tests: Vitest through `ng test` on jsdom (`npm test`). Lint:
   angular-eslint on ESLint (`npm run lint`), with import and global
   restrictions on `src/domain/` (ADR-0005). Not deployed in the MVP; it runs
   locally with `npm start`.

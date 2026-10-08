@@ -38,6 +38,23 @@ describe('ChoiceFieldComponent', () => {
     expect(new Set(radios(page).map((radio) => radio.name)).size).toBe(1);
   });
 
+  it('says more under an option that has a detail, tied to its radio without lengthening the radio name', () => {
+    const fixture = TestBed.createComponent(ChoiceFieldComponent);
+    fixture.componentRef.setInput('question', {
+      ...question,
+      options: [{ value: 'application', label: 'An application', detail: 'People use it directly.' }, question.options[1]],
+    });
+    fixture.detectChanges();
+
+    const page = fixture.nativeElement as HTMLElement;
+    const [first, second] = radios(page);
+    const detail = page.querySelector('.choice__detail');
+    expect(detail?.textContent).toBe('People use it directly.');
+    expect(first.getAttribute('aria-describedby')).toBe(detail?.id);
+    expect(second.hasAttribute('aria-describedby')).toBe(false);
+    expect([...page.querySelectorAll('label')].map((label) => label.textContent?.trim())).toEqual(['An application', 'A service']);
+  });
+
   it('checks the option that is the current answer', () => {
     const { page } = render('service');
 

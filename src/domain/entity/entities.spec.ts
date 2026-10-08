@@ -2,7 +2,9 @@ import {
   emptyEntities,
   entityLabel,
   entityOptions,
+  hasFieldContent,
   isNamed,
+  referenceCandidates,
   withEditedEntity,
   withEntity,
   withMovedEntity,
@@ -343,5 +345,35 @@ describe('entityOptions', () => {
 
   it('offers nothing when no row is named', () => {
     expect(entityOptions(emptyEntities(), 'module')).toEqual([]);
+  });
+});
+
+describe('referenceCandidates', () => {
+  const modules = build(moduleRow('m1', 'Reminders'), moduleRow('m2', 'Messaging'), actor('a1', 'Patient'));
+
+  it('offers every row of the other kind', () => {
+    expect(referenceCandidates(modules, 'use-case', 'u1', 'actor').map((found) => found.id)).toEqual(['a1']);
+  });
+
+  it('offers every other row of the same kind, never the row itself', () => {
+    expect(referenceCandidates(modules, 'module', 'm1', 'module').map((found) => found.id)).toEqual(['m2']);
+  });
+});
+
+describe('hasFieldContent', () => {
+  it('is true once a named row has something written in the field', () => {
+    const entities = build(moduleRow('m1', 'Reminders'), moduleRow('m2', 'Messaging'));
+    expect(hasFieldContent(entities, 'module', 'dependsOn')).toBe(false);
+
+    const written = withEditedEntity(entities, 'module', 'm1', { fields: { dependsOn: ['m2'] } });
+    expect(hasFieldContent(written, 'module', 'dependsOn')).toBe(true);
+  });
+
+  it('ignores blank lines and rows with no name', () => {
+    const blank = build(moduleRow('m1', 'Reminders', { responsibilities: ['  '] }));
+    const unnamed = build(moduleRow('m2', '', { responsibilities: ['Something'] }));
+
+    expect(hasFieldContent(blank, 'module', 'responsibilities')).toBe(false);
+    expect(hasFieldContent(unnamed, 'module', 'responsibilities')).toBe(false);
   });
 });

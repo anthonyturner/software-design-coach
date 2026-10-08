@@ -493,7 +493,7 @@ export const newProjectWorkflow: Workflow = {
         'Does the sketch say how the module works inside (a table, a queue, the vendor)? An interface should say what, never how.',
         'Must callers call things in a set order, or clean up afterwards? That is a rule they have to remember. Can the module do it itself?',
         'Which errors can a caller receive? Could the module absorb one, or make it impossible?',
-        'Is the interface about as long as the module\'s whole purpose statement? Then the module is shallow: reconsider the split or the sketch.',
+        'Does the interface take as long to explain as the work it hides? Then the module is shallow: reconsider the split or the sketch.',
       ],
     },
     {
@@ -515,6 +515,7 @@ export const newProjectWorkflow: Workflow = {
           entity: 'module',
           field: 'dependsOn',
           hint: 'Tick only what it really calls or relies on. A module that needs nothing else is fine.',
+          noneLabel: 'No module depends on another',
         },
         {
           id: 'direction',
@@ -535,7 +536,7 @@ export const newProjectWorkflow: Workflow = {
         'Which module has the most arrows pointing at it? Everything is coupled to it, so is its interface stable enough to carry that?',
         'Does a module need more than three or four others? It may be doing too much, or be a coordinator that deserves to be named as one.',
         'Is a dependency there only because some knowledge sits in the wrong module? Moving the knowledge may remove the arrow.',
-        'No dependencies at all? Either you have one module in disguise, or they cooperate through something not on this list.',
+        'No dependencies at all? That is a fine answer for a single module. With several, ask what else they cooperate through, such as shared data or an outside system.',
       ],
     },
     {

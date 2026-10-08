@@ -168,6 +168,14 @@ describe('the questions each step asks', () => {
     }
   });
 
+  it('offers an explicit "none" only where listing nothing is a real answer', () => {
+    const offered = questions.flatMap(({ step, question }) =>
+      question.kind === 'entity-fields' && question.noneLabel !== undefined ? [[step.id, question.field]] : [],
+    );
+
+    expect(offered).toEqual([['dependencies', 'dependsOn']]);
+  });
+
   it('asks for more than one row only where a minimum says so, as design-it-twice needs two options', () => {
     const minimums = questions.flatMap(({ question }) =>
       question.kind === 'entity-list' && question.minimum !== undefined ? [[question.entity, question.minimum]] : [],

@@ -70,6 +70,28 @@ export function entityOptions(entities: ProjectEntities, kind: EntityKind): read
   return entities[kind].filter(isNamed).map((entity) => ({ value: entity.id, label: entityLabel(entity, kind) }));
 }
 
+/** The rows a reference field of a `kind` row can point at: every row of that kind, except the row itself. */
+export function referenceCandidates(
+  entities: ProjectEntities,
+  kind: EntityKind,
+  ownId: string,
+  references: EntityKind,
+): readonly Entity[] {
+  return entities[references].filter((candidate) => references !== kind || candidate.id !== ownId);
+}
+
+/** Whether any named row has something written in the field; blank lines and unnamed rows do not count. */
+export function hasFieldContent(entities: ProjectEntities, kind: EntityKind, key: string): boolean {
+  return entities[kind].some((row) => isNamed(row) && hasContent(row.fields[key]));
+}
+
+export function hasContent(value: FieldValue | undefined): boolean {
+  if (value === undefined) {
+    return false;
+  }
+  return typeof value === 'string' ? value.trim() !== '' : value.some((item) => item.trim() !== '');
+}
+
 export function entityLabel(entity: Entity, kind: EntityKind): string {
   return isNamed(entity) ? entity.name.trim() : `Unnamed ${entityDefinitions[kind].singular}`;
 }
@@ -107,10 +129,7 @@ function accept(entities: ProjectEntities, kind: EntityKind, ownId: string, fiel
       if (typeof value === 'string') {
         return undefined;
       }
-      const known = new Set(entities[field.references].map((entity) => entity.id));
-      if (field.references === kind) {
-        known.delete(ownId);
-      }
+      const known = new Set(referenceCandidates(entities, kind, ownId, field.references).map((entity) => entity.id));
       return [...new Set(value)].filter((id) => known.has(id));
     }
   }

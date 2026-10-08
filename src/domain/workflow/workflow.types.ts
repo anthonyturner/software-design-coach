@@ -41,6 +41,8 @@ export interface EntityFieldsQuestion extends QuestionBase {
   readonly kind: 'entity-fields';
   readonly entity: EntityKind;
   readonly field: string;
+  /** When set, the user may tick this instead of filling the field in, to say that no row has anything to list. */
+  readonly noneLabel?: string;
 }
 
 /** The answer is the id of one named `entity` row, kept with the answers and dropped if the row is removed. */

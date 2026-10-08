@@ -1,4 +1,4 @@
-export { emptyEntities, entityLabel, entityOptions, isNamed } from './entity/entities';
+export { emptyEntities, entityLabel, entityOptions, hasFieldContent, isNamed, referenceCandidates } from './entity/entities';
 export { entityDefinitions } from './entity/entity-definitions';
 export { ENTITY_KINDS } from './entity/entity.types';
 export type {
@@ -19,6 +19,7 @@ export {
   goTo,
   isProjectSummary,
   moveEntity,
+  NONE_ANSWER,
   removeEntity,
   SCHEMA_VERSION,
   stepAnswers,

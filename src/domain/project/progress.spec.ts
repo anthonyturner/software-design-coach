@@ -1,5 +1,5 @@
 import { findStep, workflowFor } from '../workflow/workflow';
-import { addEntity, answer, createProject, goTo, updateEntity } from './project';
+import { addEntity, answer, createProject, goTo, NONE_ANSWER, updateEntity } from './project';
 import { journeyOf, openQuestions } from './progress';
 import type { Project } from './project.types';
 
@@ -139,13 +139,27 @@ describe('steps that edit the rows listed earlier', () => {
     expect(stateOf(unnamed, 'responsibilities')).toBe('not-started');
   });
 
-  it('counts a dependency as written, though a module with none is fine', () => {
+  it('counts a dependency as written', () => {
     let project = withModule(withModule(goTo(newProject(), 'users', now), 'm1', 'Reminders'), 'm2', 'Messaging');
     expect(stateOf(project, 'dependencies')).toBe('not-started');
 
     project = updateEntity(project, 'module', 'm1', { fields: { dependsOn: ['m2'] } }, now);
 
     expect(stateOf(project, 'dependencies')).toBe('done');
+  });
+
+  it('counts the answer that no module depends on another, as a one-module design must be able to give', () => {
+    const oneModule = withModule(goTo(newProject(), 'users', now), 'm1', 'Reminders');
+    expect(stateOf(oneModule, 'dependencies')).toBe('not-started');
+
+    expect(stateOf(answer(oneModule, 'dependencies', 'dependencies', NONE_ANSWER, now), 'dependencies')).toBe('done');
+  });
+
+  it('is open again once the answer that none depend is taken back', () => {
+    const oneModule = withModule(goTo(newProject(), 'users', now), 'm1', 'Reminders');
+    const none = answer(oneModule, 'dependencies', 'dependencies', NONE_ANSWER, now);
+
+    expect(stateOf(answer(none, 'dependencies', 'dependencies', '', now), 'dependencies')).toBe('not-started');
   });
 });
 

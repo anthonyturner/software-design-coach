@@ -1,4 +1,4 @@
-export { emptyEntities, entityLabel, isNamed } from './entity/entities';
+export { emptyEntities, entityLabel, entityOptions, isNamed } from './entity/entities';
 export { entityDefinitions } from './entity/entity-definitions';
 export { ENTITY_KINDS } from './entity/entity.types';
 export type {
@@ -33,6 +33,8 @@ export type {
   AnswerKind,
   ChoiceOption,
   ChoiceQuestion,
+  EntityChoiceQuestion,
+  EntityFieldsQuestion,
   EntityListQuestion,
   ProjectMode,
   Question,

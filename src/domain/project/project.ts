@@ -1,11 +1,11 @@
-import { emptyEntities, withEditedEntity, withEntity, withMovedEntity, withoutEntity } from '../entity/entities';
+import { emptyEntities, entityOptions, withEditedEntity, withEntity, withMovedEntity, withoutEntity } from '../entity/entities';
 import type { EntityEdit, EntityKind, ProjectEntities } from '../entity/entity.types';
 import { isRecord } from '../record';
 import { findQuestion, findStep, isProjectMode, workflowFor } from '../workflow/workflow';
 import type { ProjectMode, Question } from '../workflow/workflow.types';
 import type { AnswerValue, Project, ProjectSummary, StepAnswers } from './project.types';
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 const UNTITLED = 'Untitled project';
 const NO_ANSWERS: StepAnswers = Object.freeze({});
@@ -37,7 +37,7 @@ export function answer(
   now: string,
 ): Project {
   const question = findQuestion(workflowFor(project.mode), stepId, questionId);
-  if (!question || !fits(question, value)) {
+  if (!question || !fits(project, question, value)) {
     return project;
   }
   return {
@@ -60,9 +60,13 @@ export function moveEntity(project: Project, kind: EntityKind, id: string, offse
   return withEntities(project, withMovedEntity(project.entities, kind, id, offset), now);
 }
 
-/** Removes a row and, with it, every reference to it from other rows. */
+/** Removes a row and, with it, every reference to it: from other rows, and from answers that chose it. */
 export function removeEntity(project: Project, kind: EntityKind, id: string, now: string): Project {
-  return withEntities(project, withoutEntity(project.entities, kind, id), now);
+  const entities = withoutEntity(project.entities, kind, id);
+  if (entities === project.entities) {
+    return project;
+  }
+  return { ...project, entities, answers: withoutChoicesOf(project, kind, id), updatedAt: now };
 }
 
 export function goTo(project: Project, stepId: string, now: string): Project {
@@ -94,7 +98,21 @@ function withEntities(project: Project, entities: ProjectEntities, now: string):
   return entities === project.entities ? project : { ...project, entities, updatedAt: now };
 }
 
-function fits(question: Question, value: AnswerValue): boolean {
+/** Drops the answers that chose the removed row, and keeps the `answers` object itself when none did. */
+function withoutChoicesOf(project: Project, kind: EntityKind, id: string): Project['answers'] {
+  let answers = project.answers;
+  for (const step of workflowFor(project.mode).steps) {
+    for (const question of step.questions) {
+      if (question.kind === 'entity-choice' && question.entity === kind && answers[step.id]?.[question.id] === id) {
+        const kept = Object.entries(answers[step.id]).filter(([questionId]) => questionId !== question.id);
+        answers = { ...answers, [step.id]: Object.fromEntries(kept) };
+      }
+    }
+  }
+  return answers;
+}
+
+function fits(project: Project, question: Question, value: AnswerValue): boolean {
   switch (question.kind) {
     case 'short-text':
     case 'long-text':
@@ -103,7 +121,10 @@ function fits(question: Question, value: AnswerValue): boolean {
       return typeof value !== 'string';
     case 'choice':
       return typeof value === 'string' && question.options.some((option) => option.value === value);
+    case 'entity-choice':
+      return typeof value === 'string' && entityOptions(project.entities, question.entity).some((option) => option.value === value);
     case 'entity-list':
+    case 'entity-fields':
       return false;
   }
 }

@@ -1,3 +1,4 @@
+import { emptyEntities } from '../entity/entities';
 import {
   addEntity,
   answer,
@@ -27,7 +28,7 @@ describe('createProject', () => {
       name: 'Reminders',
       mode: 'new-project',
       answers: {},
-      entities: { actor: [], 'use-case': [], concept: [], 'external-system': [], module: [] },
+      entities: emptyEntities(),
       currentStepId: 'problem',
       createdAt: created,
       updatedAt: created,
@@ -213,5 +214,56 @@ describe('isProjectSummary', () => {
     expect(isProjectSummary(undefined)).toBe(false);
     expect(isProjectSummary({ id: 'p1', name: 'x', mode: 'new-project' })).toBe(false);
     expect(isProjectSummary({ id: 'p1', name: 'x', mode: 'other', updatedAt: created })).toBe(false);
+  });
+});
+
+describe('choosing one of the rows', () => {
+  function withTwoOptions(): ReturnType<typeof createProject> {
+    let project = newProject();
+    for (const [id, name] of [['o1', 'Layered'], ['o2', 'Event-driven']]) {
+      project = updateEntity(addEntity(project, 'architecture-option', id, later), 'architecture-option', id, { name }, later);
+    }
+    return project;
+  }
+
+  const chosen = (project: ReturnType<typeof createProject>): unknown => project.answers['decision']?.['chosen'];
+
+  it('records which option was chosen, by id', () => {
+    expect(chosen(answer(withTwoOptions(), 'decision', 'chosen', 'o2', later))).toBe('o2');
+  });
+
+  it('ignores an option that does not exist, a blank one, or a list', () => {
+    const before = withTwoOptions();
+
+    expect(answer(before, 'decision', 'chosen', 'ghost', later)).toBe(before);
+    expect(answer(before, 'decision', 'chosen', ['o1'], later)).toBe(before);
+    expect(answer(addEntity(before, 'architecture-option', 'o3', later), 'decision', 'chosen', 'o3', later).answers).toEqual({});
+  });
+
+  it('forgets the choice when the chosen option is removed', () => {
+    const decided = answer(answer(withTwoOptions(), 'decision', 'chosen', 'o2', later), 'decision', 'reasons', 'Simpler', later);
+
+    const after = removeEntity(decided, 'architecture-option', 'o2', later);
+
+    expect(chosen(after)).toBeUndefined();
+    expect(after.answers['decision']).toEqual({ reasons: 'Simpler' });
+  });
+
+  it('keeps the choice when a different option is removed', () => {
+    const decided = answer(withTwoOptions(), 'decision', 'chosen', 'o2', later);
+
+    expect(chosen(removeEntity(decided, 'architecture-option', 'o1', later))).toBe('o2');
+  });
+
+  it('keeps the choice when a row of another kind with the same id is removed', () => {
+    const decided = addEntity(answer(withTwoOptions(), 'decision', 'chosen', 'o2', later), 'actor', 'o2', later);
+
+    expect(chosen(removeEntity(decided, 'actor', 'o2', later))).toBe('o2');
+  });
+
+  it('keeps the choice across a rename, since the id is what is stored', () => {
+    const decided = answer(withTwoOptions(), 'decision', 'chosen', 'o2', later);
+
+    expect(chosen(updateEntity(decided, 'architecture-option', 'o2', { name: 'Events' }, later))).toBe('o2');
   });
 });

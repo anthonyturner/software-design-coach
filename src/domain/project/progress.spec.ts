@@ -116,3 +116,81 @@ describe('openQuestions', () => {
     expect(openQuestions(problemAnswered(newProject()), stepNamed('problem'))).toEqual([]);
   });
 });
+
+describe('steps that edit the rows listed earlier', () => {
+  function withModule(project: Project, id: string, name: string, fields: Record<string, string | string[]> = {}): Project {
+    return updateEntity(addEntity(project, 'module', id, now), 'module', id, { name, fields }, now);
+  }
+
+  it('is not started until some named module has something written in the field', () => {
+    const modules = withModule(withModule(goTo(newProject(), 'users', now), 'm1', 'Reminders'), 'm2', 'Messaging');
+
+    expect(stateOf(modules, 'responsibilities')).toBe('not-started');
+    expect(
+      stateOf(updateEntity(modules, 'module', 'm1', { fields: { responsibilities: ['Decide when one is due'] } }, now), 'responsibilities'),
+    ).toBe('done');
+  });
+
+  it('does not count blank lines or a module that has no name', () => {
+    const blank = withModule(goTo(newProject(), 'users', now), 'm1', 'Reminders', { responsibilities: ['  '] });
+    const unnamed = withModule(goTo(newProject(), 'users', now), 'm2', '', { responsibilities: ['Something'] });
+
+    expect(stateOf(blank, 'responsibilities')).toBe('not-started');
+    expect(stateOf(unnamed, 'responsibilities')).toBe('not-started');
+  });
+
+  it('counts a dependency as written, though a module with none is fine', () => {
+    let project = withModule(withModule(goTo(newProject(), 'users', now), 'm1', 'Reminders'), 'm2', 'Messaging');
+    expect(stateOf(project, 'dependencies')).toBe('not-started');
+
+    project = updateEntity(project, 'module', 'm1', { fields: { dependsOn: ['m2'] } }, now);
+
+    expect(stateOf(project, 'dependencies')).toBe('done');
+  });
+});
+
+describe('a list that needs more than one row', () => {
+  function withOptions(names: readonly string[]): Project {
+    return names.reduce(
+      (project, name, index) =>
+        updateEntity(addEntity(project, 'architecture-option', `o${index}`, now), 'architecture-option', `o${index}`, { name }, now),
+      goTo(newProject(), 'users', now),
+    );
+  }
+
+  it('is not complete with one alternative, since a design needs two to be compared', () => {
+    const one = answer(withOptions(['Layered']), 'architecture-options', 'comparison', 'Compared', now);
+    const two = answer(withOptions(['Layered', 'Event-driven']), 'architecture-options', 'comparison', 'Compared', now);
+
+    expect(stateOf(one, 'architecture-options')).toBe('in-progress');
+    expect(stateOf(two, 'architecture-options')).toBe('done');
+  });
+
+  it('does not count an alternative without a name towards the two', () => {
+    const project = answer(withOptions(['Layered', '  ']), 'architecture-options', 'comparison', 'Compared', now);
+
+    expect(openQuestions(project, stepNamed('architecture-options')).map((question) => question.id)).toEqual(['options']);
+  });
+});
+
+describe('a decision', () => {
+  function decided(chosen: string | undefined): Project {
+    let project = goTo(newProject(), 'users', now);
+    for (const [id, name] of [['o1', 'Layered'], ['o2', 'Event-driven']]) {
+      project = updateEntity(addEntity(project, 'architecture-option', id, now), 'architecture-option', id, { name }, now);
+    }
+    project = answer(project, 'decision', 'reasons', 'It is simpler to start', now);
+    return chosen ? answer(project, 'decision', 'chosen', chosen, now) : project;
+  }
+
+  it('is open until an option is chosen', () => {
+    expect(openQuestions(decided(undefined), stepNamed('decision')).map((question) => question.id)).toEqual(['chosen']);
+    expect(openQuestions(decided('o2'), stepNamed('decision'))).toEqual([]);
+  });
+
+  it('is open again when the chosen option is renamed to nothing, since it can no longer be picked out', () => {
+    const blanked = updateEntity(decided('o2'), 'architecture-option', 'o2', { name: '' }, now);
+
+    expect(openQuestions(blanked, stepNamed('decision')).map((question) => question.id)).toEqual(['chosen']);
+  });
+});

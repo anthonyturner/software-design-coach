@@ -19,6 +19,7 @@ export function isStoredProject(value: unknown): value is StoredProject {
 
 const upgrades: Readonly<Record<number, (stored: StoredProject) => StoredProject>> = {
   1: fromSchema1,
+  2: fromSchema2,
 };
 
 /**
@@ -97,6 +98,26 @@ function fromSchema1(stored: StoredProject): StoredProject {
   }));
   const kept = Object.entries(users).filter(([question]) => question !== 'users' && !(question === 'needs' && needs !== undefined));
   return { ...stored, schemaVersion: 2, answers: { ...answers, users: Object.fromEntries(kept) }, entities: { actor: actors } };
+}
+
+/**
+ * Schema 3 gives a module a list of responsibilities, hidden knowledge, an interface sketch and the
+ * modules it depends on. Modules saved before had only a purpose, so each gains the rest, empty.
+ */
+function fromSchema2(stored: StoredProject): StoredProject {
+  const { entities } = stored;
+  const modules = isRecord(entities) ? entities['module'] : undefined;
+  if (!isRecord(entities) || !Array.isArray(modules)) {
+    return { ...stored, schemaVersion: 3 };
+  }
+  return { ...stored, schemaVersion: 3, entities: { ...entities, module: modules.map(withModuleDetails) } };
+}
+
+function withModuleDetails(row: unknown): unknown {
+  if (!isRecord(row) || !isRecord(row['fields'])) {
+    return row;
+  }
+  return { ...row, fields: { responsibilities: [], hides: '', interface: '', dependsOn: [], ...row['fields'] } };
 }
 
 function parseEntities(value: unknown): ProjectEntities | undefined {

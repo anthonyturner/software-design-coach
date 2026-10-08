@@ -9,7 +9,7 @@ import type { Entity, EntityEdit, EntityField, EntityKind, FieldValue, ProjectEn
  */
 
 export function emptyEntities(): ProjectEntities {
-  return { actor: [], 'use-case': [], concept: [], 'external-system': [], module: [] };
+  return { actor: [], 'use-case': [], concept: [], 'external-system': [], module: [], 'architecture-option': [] };
 }
 
 export function withEntity(entities: ProjectEntities, kind: EntityKind, id: string): ProjectEntities {
@@ -65,6 +65,11 @@ export function isNamed(entity: Entity): boolean {
   return entity.name.trim() !== '';
 }
 
+/** The named rows of a kind as value and label, for a question that asks the user to pick one of them. */
+export function entityOptions(entities: ProjectEntities, kind: EntityKind): readonly { readonly value: string; readonly label: string }[] {
+  return entities[kind].filter(isNamed).map((entity) => ({ value: entity.id, label: entityLabel(entity, kind) }));
+}
+
 export function entityLabel(entity: Entity, kind: EntityKind): string {
   return isNamed(entity) ? entity.name.trim() : `Unnamed ${entityDefinitions[kind].singular}`;
 }
@@ -93,17 +98,22 @@ function applyEdit(entities: ProjectEntities, kind: EntityKind, entity: Entity, 
 }
 
 function accept(entities: ProjectEntities, kind: EntityKind, ownId: string, field: EntityField, value: FieldValue): FieldValue | undefined {
-  if (field.kind === 'text') {
-    return typeof value === 'string' ? value : undefined;
+  switch (field.kind) {
+    case 'text':
+      return typeof value === 'string' ? value : undefined;
+    case 'list':
+      return typeof value === 'string' ? undefined : value;
+    case 'references': {
+      if (typeof value === 'string') {
+        return undefined;
+      }
+      const known = new Set(entities[field.references].map((entity) => entity.id));
+      if (field.references === kind) {
+        known.delete(ownId);
+      }
+      return [...new Set(value)].filter((id) => known.has(id));
+    }
   }
-  if (typeof value === 'string') {
-    return undefined;
-  }
-  const known = new Set(entities[field.references].map((entity) => entity.id));
-  if (field.references === kind) {
-    known.delete(ownId);
-  }
-  return [...new Set(value)].filter((id) => known.has(id));
 }
 
 function sameValue(a: FieldValue, b: FieldValue | undefined): boolean {

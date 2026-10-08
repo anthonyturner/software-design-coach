@@ -2,39 +2,76 @@ import { entityDefinitions } from '../entity/entity-definitions';
 import { ENTITY_KINDS } from '../entity/entity.types';
 import type { EntityKind } from '../entity/entity.types';
 import { adjacentSteps, findQuestion, findStep, isProjectMode, workflowFor } from './workflow';
+import type { Question } from './workflow.types';
+
+const SPEC_ORDER = [
+  ['problem', 'Problem'],
+  ['users', 'Users'],
+  ['goals', 'Goals'],
+  ['non-goals', 'Non-goals'],
+  ['requirements', 'Requirements'],
+  ['use-cases', 'Use Cases'],
+  ['domain-concepts', 'Domain Concepts'],
+  ['system-boundary', 'System Boundary'],
+  ['modules', 'Modules'],
+  ['responsibilities', 'Responsibilities'],
+  ['information-hiding', 'Information Hiding'],
+  ['interfaces', 'Interfaces'],
+  ['dependencies', 'Dependencies'],
+  ['architecture-options', 'Architecture Options'],
+  ['decision', 'Decision'],
+  ['first-vertical-slice', 'First Vertical Slice'],
+  ['tests', 'Tests'],
+  ['implementation-plan', 'Implementation Plan'],
+  ['design-review', 'Design Review'],
+] as const;
 
 describe('workflowFor', () => {
   const workflow = workflowFor('new-project');
 
-  it('walks Problem through Modules in that order', () => {
-    expect(workflow.steps.map((step) => step.id)).toEqual([
-      'problem',
-      'users',
-      'goals',
-      'non-goals',
-      'requirements',
-      'use-cases',
-      'domain-concepts',
-      'system-boundary',
-      'modules',
-    ]);
+  it('walks the nineteen steps of the New Project workflow, in the order the spec gives', () => {
+    expect(workflow.steps).toHaveLength(19);
+    expect(workflow.steps.map((step) => [step.id, step.title])).toEqual(SPEC_ORDER.map((step) => [...step]));
   });
 
   it('gives every step the coaching content the wizard shows', () => {
     for (const step of workflow.steps) {
-      expect(step.title, step.id).not.toBe('');
-      expect(step.think, step.id).not.toBe('');
-      expect(step.why, step.id).not.toBe('');
-      expect(step.example, step.id).not.toBe('');
+      for (const text of [step.title, step.think, step.why, step.example]) {
+        expect(text.trim(), step.id).not.toBe('');
+      }
       expect(step.challenges.length, step.id).toBeGreaterThan(0);
+      expect(
+        step.challenges.every((challenge) => challenge.trim() !== ''),
+        step.id,
+      ).toBe(true);
       expect(step.questions.length, step.id).toBeGreaterThan(0);
     }
+  });
+
+  it('keeps the framing short and the reasoning longer', () => {
+    for (const step of workflow.steps) {
+      expect(step.think.length, step.id).toBeLessThan(step.why.length);
+    }
+  });
+
+  it('keeps step ids unique, since progress and answers are keyed by them', () => {
+    const ids = workflow.steps.map((step) => step.id);
+
+    expect(new Set(ids).size).toBe(ids.length);
   });
 
   it('keeps question ids unique within a step, since answers are keyed by them', () => {
     for (const step of workflow.steps) {
       const ids = step.questions.map((question) => question.id);
       expect(new Set(ids).size, step.id).toBe(ids.length);
+    }
+  });
+
+  it('words every question as a prompt', () => {
+    for (const step of workflow.steps) {
+      for (const question of step.questions) {
+        expect(question.prompt.trim(), `${step.id}.${question.id}`).not.toBe('');
+      }
     }
   });
 });
@@ -63,27 +100,93 @@ describe('the questions each step asks', () => {
     }
   });
 
-  it('edits each kind of entity from exactly one question, so there is one place to list them', () => {
-    const kinds = questions.flatMap(({ question }) => (question.kind === 'entity-list' ? [question.entity] : []));
-
-    expect([...kinds].sort()).toEqual(['actor', 'concept', 'external-system', 'module', 'use-case']);
-  });
-
-  it('never asks for an entity that refers to a kind listed in a later step', () => {
-    const stepOf = (kind: EntityKind): number =>
-      steps.findIndex((step) =>
-        step.questions.some((question) => question.kind === 'entity-list' && question.entity === kind),
-      );
-
+  it('gives every kind of entity a definition whose references point at kinds that exist', () => {
     for (const kind of ENTITY_KINDS) {
-      for (const field of entityDefinitions[kind].fields) {
+      const definition = entityDefinitions[kind];
+      expect(definition.nameLabel, kind).not.toBe('');
+      const keys = definition.fields.map((field) => field.key);
+      expect(new Set(keys).size, kind).toBe(keys.length);
+      for (const field of definition.fields) {
         if (field.kind === 'references') {
-          expect(stepOf(field.references), `${kind}.${field.key}`).toBeLessThanOrEqual(stepOf(kind));
+          expect(ENTITY_KINDS, `${kind}.${field.key}`).toContain(field.references);
         }
       }
     }
   });
+
+  it('names only kinds of entity and fields that exist', () => {
+    for (const { step, question } of questions) {
+      if (question.kind === 'entity-list' || question.kind === 'entity-fields' || question.kind === 'entity-choice') {
+        const where = `${step.id}.${question.id}`;
+        expect(ENTITY_KINDS, where).toContain(question.entity);
+        const known = entityDefinitions[question.entity].fields.map((field) => field.key);
+        for (const key of editedFields(question)) {
+          expect(known, where).toContain(key);
+        }
+      }
+    }
+  });
+
+  it('lists each kind of entity from exactly one question, so there is one place to add them', () => {
+    const kinds = questions.flatMap(({ question }) => (question.kind === 'entity-list' ? [question.entity] : []));
+
+    expect([...kinds].sort()).toEqual([...ENTITY_KINDS].sort());
+  });
+
+  it('edits every field of every kind of entity from exactly one question', () => {
+    const editors = questions
+      .flatMap(({ question }) =>
+        question.kind === 'entity-list' || question.kind === 'entity-fields'
+          ? editedFields(question).map((key) => `${question.entity}.${key}`)
+          : [],
+      )
+      .sort();
+    const everyField = ENTITY_KINDS.flatMap((kind) => entityDefinitions[kind].fields.map((field) => `${kind}.${field.key}`));
+
+    expect(editors).toEqual(everyField.sort());
+  });
+
+  it('never asks about rows that a later step lists, nor lets a row refer to one', () => {
+    const listedIn = (kind: EntityKind): number =>
+      steps.findIndex((step) =>
+        step.questions.some((question) => question.kind === 'entity-list' && question.entity === kind),
+      );
+
+    steps.forEach((step, index) => {
+      for (const question of step.questions) {
+        if (question.kind === 'entity-fields' || question.kind === 'entity-choice') {
+          expect(listedIn(question.entity), `${step.id}.${question.id}`).toBeLessThanOrEqual(index);
+        }
+      }
+    });
+    for (const kind of ENTITY_KINDS) {
+      for (const field of entityDefinitions[kind].fields) {
+        if (field.kind === 'references') {
+          expect(listedIn(field.references), `${kind}.${field.key}`).toBeLessThanOrEqual(listedIn(kind));
+        }
+      }
+    }
+  });
+
+  it('asks for more than one row only where a minimum says so, as design-it-twice needs two options', () => {
+    const minimums = questions.flatMap(({ question }) =>
+      question.kind === 'entity-list' && question.minimum !== undefined ? [[question.entity, question.minimum]] : [],
+    );
+
+    expect(minimums).toEqual([['architecture-option', 2]]);
+  });
 });
+
+function editedFields(question: Question): readonly string[] {
+  switch (question.kind) {
+    case 'entity-list':
+      return question.fields ?? entityDefinitions[question.entity].fields.map((field) => field.key);
+    case 'entity-fields':
+      return [question.field];
+    default:
+      return [];
+  }
+}
 
 describe('finding things in a workflow', () => {
   const workflow = workflowFor('new-project');
@@ -126,9 +229,9 @@ describe('adjacentSteps', () => {
   });
 
   it('has no next step at the end', () => {
-    const { previous, next } = adjacentSteps(workflow, 'modules');
+    const { previous, next } = adjacentSteps(workflow, 'design-review');
 
-    expect(previous?.id).toBe('system-boundary');
+    expect(previous?.id).toBe('implementation-plan');
     expect(next).toBeUndefined();
   });
 

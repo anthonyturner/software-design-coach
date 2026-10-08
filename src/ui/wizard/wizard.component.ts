@@ -1,14 +1,16 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ProjectStore } from '../../app/project-store';
-import { adjacentSteps, stepAnswers } from '../../domain';
-import type { AnswerValue } from '../../domain';
+import { adjacentSteps, openQuestions, stepAnswers } from '../../domain';
+import type { AnswerValue, EntityKind } from '../../domain';
+import type { EntityChange } from '../entity-list/entity-change';
+import { JourneyRailComponent } from '../journey-rail/journey-rail.component';
 import { StepPanelComponent } from '../step-panel/step-panel.component';
 import { StorageNoticeComponent } from '../storage-notice/storage-notice.component';
 
 @Component({
   selector: 'sdc-wizard',
-  imports: [RouterLink, StepPanelComponent, StorageNoticeComponent],
+  imports: [JourneyRailComponent, RouterLink, StepPanelComponent, StorageNoticeComponent],
   templateUrl: './wizard.component.html',
   styleUrl: './wizard.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -31,6 +33,8 @@ export class WizardComponent {
       workflowTitle: workflow.title,
       step,
       answers: stepAnswers(project, step.id),
+      entities: project.entities,
+      openCount: openQuestions(project, step).length,
       stepNumber: workflow.steps.indexOf(step) + 1,
       stepCount: workflow.steps.length,
       previousId: previous?.id,
@@ -51,6 +55,24 @@ export class WizardComponent {
     const step = this.view()?.step;
     if (step) {
       this.store.answer(step.id, event.questionId, event.value);
+    }
+  }
+
+  protected changeEntities(event: { readonly entity: EntityKind; readonly change: EntityChange }): void {
+    const { entity, change } = event;
+    switch (change.type) {
+      case 'add':
+        this.store.addEntity(entity);
+        break;
+      case 'edit':
+        this.store.updateEntity(entity, change.id, change.edit);
+        break;
+      case 'move':
+        this.store.moveEntity(entity, change.id, change.offset);
+        break;
+      case 'remove':
+        this.store.removeEntity(entity, change.id);
+        break;
     }
   }
 

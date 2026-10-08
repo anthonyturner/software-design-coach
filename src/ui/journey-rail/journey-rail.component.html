@@ -1,0 +1,19 @@
+<nav class="rail" aria-label="Design journey">
+  <p class="rail__title" aria-hidden="true">Journey</p>
+  <ol class="rail__list">
+    @for (item of items(); track item.stepId) {
+      <li class="rail__item">
+        <button
+          type="button"
+          [class]="item.classes"
+          [attr.aria-current]="item.current ? 'step' : null"
+          (click)="selected.emit(item.stepId)"
+        >
+          <span class="rail__marker" aria-hidden="true">{{ item.marker }}</span>
+          <span class="rail__name">{{ item.label }}</span>
+          <span class="rail__state">, {{ item.stateName }}</span>
+        </button>
+      </li>
+    }
+  </ol>
+</nav>

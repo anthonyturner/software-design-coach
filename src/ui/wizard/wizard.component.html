@@ -7,17 +7,23 @@
         <h2 class="wizard__title">{{ v.projectName }}</h2>
         <p class="wizard__mode">{{ v.workflowTitle }}</p>
       </header>
-      <sdc-step-panel
-        [step]="v.step"
-        [answers]="v.answers"
-        [stepNumber]="v.stepNumber"
-        [stepCount]="v.stepCount"
-        [canGoBack]="v.previousId !== undefined"
-        [canContinue]="v.nextId !== undefined"
-        (answered)="answer($event)"
-        (back)="goTo(v.previousId)"
-        (next)="goTo(v.nextId)"
-      />
+      <div class="wizard__layout">
+        <sdc-journey-rail class="wizard__rail" [stops]="store.journey()" (selected)="goTo($event)" />
+        <sdc-step-panel
+          [step]="v.step"
+          [answers]="v.answers"
+          [entities]="v.entities"
+          [stepNumber]="v.stepNumber"
+          [stepCount]="v.stepCount"
+          [openCount]="v.openCount"
+          [canGoBack]="v.previousId !== undefined"
+          [canContinue]="v.nextId !== undefined"
+          (answered)="answer($event)"
+          (entityChanged)="changeEntities($event)"
+          (back)="goTo(v.previousId)"
+          (next)="goTo(v.nextId)"
+        />
+      </div>
     }
   }
   @case ('not-found') {

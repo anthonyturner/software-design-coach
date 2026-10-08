@@ -81,7 +81,7 @@ function fromSchema1(stored: StoredProject): StoredProject {
   if (!isRecord(answers) || !isRecord(users) || !Array.isArray(roles)) {
     return { ...stored, schemaVersion: 2, entities: {} };
   }
-  const { users: _roles, ...otherUserAnswers } = users;
+  const otherUserAnswers = Object.fromEntries(Object.entries(users).filter(([question]) => question !== 'users'));
   const actors = roles
     .filter((role): role is string => typeof role === 'string' && role.trim() !== '')
     .map((role, index) => ({ id: `actor-${index + 1}`, name: role.trim(), fields: { needs: '' } }));

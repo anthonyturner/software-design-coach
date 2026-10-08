@@ -32,9 +32,6 @@ export interface EntityListQuestion extends QuestionBase {
 
 export type Question = TextQuestion | ChoiceQuestion | EntityListQuestion;
 
-/** The questions answered as a value stored under the step, as opposed to rows in an entity list. */
-export type ValueQuestion = TextQuestion | ChoiceQuestion;
-
 export type AnswerKind = Question['kind'];
 
 export interface Step {

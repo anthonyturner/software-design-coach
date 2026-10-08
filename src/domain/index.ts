@@ -38,6 +38,5 @@ export type {
   Question,
   Step,
   TextQuestion,
-  ValueQuestion,
   Workflow,
 } from './workflow/workflow.types';

@@ -6,20 +6,42 @@
 
   <section class="step__section" aria-labelledby="step-think">
     <h4 class="step__label" id="step-think">Think</h4>
-    <p class="step__why">{{ step().why }}</p>
+    <p class="step__think">{{ step().think }}</p>
+    <details class="step__disclosure">
+      <summary class="step__disclosure-toggle">Why am I being asked this?</summary>
+      <p class="step__disclosure-text">{{ step().why }}</p>
+    </details>
   </section>
 
   <section class="step__section" aria-labelledby="step-decide">
     <h4 class="step__label" id="step-decide">Decide</h4>
     <div class="step__fields">
       @for (field of fields(); track field.key) {
-        <sdc-answer-field
-          [question]="field.question"
-          [value]="field.value"
-          (answered)="answered.emit({ questionId: field.question.id, value: $event })"
-        />
+        @if (field.type === 'entities') {
+          <sdc-entity-list
+            [question]="field.question"
+            [entities]="entities()"
+            (changed)="entityChanged.emit({ entity: field.question.entity, change: $event })"
+          />
+        } @else if (field.type === 'choice') {
+          <sdc-choice-field
+            [question]="field.question"
+            [value]="field.value"
+            (answered)="answered.emit({ questionId: field.question.id, value: $event })"
+          />
+        } @else {
+          <sdc-answer-field
+            [question]="field.question"
+            [value]="field.value"
+            (answered)="answered.emit({ questionId: field.question.id, value: $event })"
+          />
+        }
       }
     </div>
+    <details class="step__disclosure">
+      <summary class="step__disclosure-toggle">Show me an example</summary>
+      <p class="step__disclosure-text step__disclosure-text--example">{{ step().example }}</p>
+    </details>
   </section>
 
   <section class="step__section" aria-labelledby="step-challenge">
@@ -31,19 +53,18 @@
     </ul>
   </section>
 
-  <details class="step__example">
-    <summary class="step__example-toggle">Show me an example</summary>
-    <p class="step__example-text">{{ step().example }}</p>
-  </details>
-
-  <div class="step__nav">
-    @if (canGoBack()) {
-      <button type="button" class="button" (click)="goBack()">Back</button>
-    }
-    @if (canContinue()) {
-      <button type="button" class="button button--primary" (click)="goNext()">Continue</button>
-    } @else {
-      <p class="step__end">That is every step available so far. Your answers are saved as you type.</p>
-    }
-  </div>
+  <section class="step__section" aria-labelledby="step-continue">
+    <h4 class="step__label" id="step-continue">Continue</h4>
+    <p class="step__status">{{ status() }}</p>
+    <div class="step__nav">
+      @if (canGoBack()) {
+        <button type="button" class="button" (click)="back.emit()">Back</button>
+      }
+      @if (canContinue()) {
+        <button type="button" class="button button--primary" (click)="next.emit()">Continue</button>
+      } @else {
+        <p class="step__end">That is every step available so far. Your answers are saved as you type.</p>
+      }
+    </div>
+  </section>
 </article>

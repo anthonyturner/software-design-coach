@@ -1,0 +1,33 @@
+.choice {
+  display: grid;
+  gap: var(--sdc-space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  &__option {
+    display: flex;
+    align-items: center;
+    gap: var(--sdc-space-3);
+    padding: var(--sdc-space-2) var(--sdc-space-3);
+    border: var(--sdc-border-width) solid var(--sdc-color-border);
+    border-radius: var(--sdc-radius-sm);
+    cursor: pointer;
+
+    &:hover {
+      border-color: var(--sdc-color-border-strong);
+    }
+
+    &:has(:checked) {
+      border-color: var(--sdc-color-accent);
+    }
+
+    &:has(:focus-visible) {
+      outline: var(--sdc-focus-ring-width) solid var(--sdc-color-focus);
+    }
+  }
+
+  &__radio {
+    accent-color: var(--sdc-color-accent);
+  }
+}

@@ -70,6 +70,30 @@ describe('LocalStorageProjectRepository', () => {
       expect(stored && migrateProject(stored)).toEqual(saved);
     });
 
+    it('still opens, lists and re-saves a project written by the walking skeleton (schema 1)', async () => {
+      const slice1 = {
+        schemaVersion: 1,
+        id: 'old',
+        name: 'Saved last week',
+        mode: 'new-project',
+        answers: { users: { users: ['Receptionist', 'Patient'] }, goals: { goals: ['fewer no-shows'] } },
+        currentStepId: 'goals',
+        createdAt: '2026-10-07T09:00:00.000Z',
+        updatedAt: '2026-10-07T09:30:00.000Z',
+      };
+      localStorage.setItem(projectKey('old'), JSON.stringify(slice1));
+
+      const stored = await repository.load('old');
+      const opened = stored && migrateProject(stored);
+      await repository.save(opened ?? project('never'));
+
+      expect(opened?.entities.actor.map((actor) => actor.name)).toEqual(['Receptionist', 'Patient']);
+      expect(opened?.answers['goals']).toEqual({ goals: ['fewer no-shows'] });
+      expect(await names(repository)).toEqual(['Saved last week']);
+      const resaved: unknown = JSON.parse(localStorage.getItem(projectKey('old')) ?? 'null');
+      expect(isStoredProject(resaved) && resaved.schemaVersion).toBe(SCHEMA_VERSION);
+    });
+
     it('writes the schema version into every saved project', async () => {
       await repository.save(project('p1'));
 

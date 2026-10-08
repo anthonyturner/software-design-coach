@@ -1,0 +1,73 @@
+.entities {
+  display: grid;
+  gap: var(--sdc-space-3);
+
+  &__empty {
+    color: var(--sdc-color-text-muted);
+    font-size: var(--sdc-font-size-sm);
+  }
+
+  &__list {
+    display: grid;
+    gap: var(--sdc-space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__add {
+    justify-self: start;
+  }
+}
+
+.entity {
+  &__group {
+    display: grid;
+    gap: var(--sdc-space-3);
+    min-width: 0;
+    margin: 0;
+    padding: var(--sdc-space-3) var(--sdc-space-4) var(--sdc-space-4);
+    background: var(--sdc-color-bg);
+    border: var(--sdc-border-width) solid var(--sdc-color-border);
+    border-radius: var(--sdc-radius-md);
+  }
+
+  &__legend {
+    padding: 0 var(--sdc-space-2);
+    color: var(--sdc-color-text-muted);
+    font-size: var(--sdc-font-size-xs);
+    letter-spacing: var(--sdc-letter-spacing-caps);
+    text-transform: uppercase;
+  }
+
+  &__field {
+    display: grid;
+    gap: var(--sdc-space-1);
+  }
+
+  &__references {
+    display: grid;
+    gap: var(--sdc-space-2);
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  &__reference {
+    display: flex;
+    align-items: center;
+    gap: var(--sdc-space-2);
+    cursor: pointer;
+  }
+
+  &__checkbox {
+    accent-color: var(--sdc-color-accent);
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sdc-space-2);
+  }
+}

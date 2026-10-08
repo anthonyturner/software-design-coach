@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import type { AnswerValue, Question } from '../../domain';
+import type { AnswerValue, TextQuestion } from '../../domain';
 import { AnswerFieldComponent } from './answer-field.component';
 
 function textareaIn(page: HTMLElement): HTMLTextAreaElement {
@@ -11,9 +11,9 @@ function textareaIn(page: HTMLElement): HTMLTextAreaElement {
 }
 
 describe('AnswerFieldComponent', () => {
-  const listQuestion: Question = { id: 'users', prompt: 'Who uses this?', kind: 'string-list', hint: 'One per line.' };
+  const listQuestion: TextQuestion = { id: 'users', prompt: 'Who uses this?', kind: 'string-list', hint: 'One per line.' };
 
-  function render(question: Question): {
+  function render(question: TextQuestion): {
     page: HTMLElement;
     answers: AnswerValue[];
     echo: (value: AnswerValue) => Promise<void>;

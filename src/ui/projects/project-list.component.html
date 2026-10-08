@@ -6,7 +6,7 @@
     <label class="field__label" for="project-name">Name a new project</label>
     <div class="projects__create-row">
       <input #name class="field__input" id="project-name" type="text" autocomplete="off" />
-      <button type="submit" class="button button--primary">Create project</button>
+      <button type="submit" class="button button--primary" [disabled]="creating()">Create project</button>
     </div>
   </form>
 

@@ -47,7 +47,7 @@ describe('LocalStorageProjectRepository', () => {
 
   beforeEach(() => {
     localStorage.clear();
-    repository = new LocalStorageProjectRepository(localStorage);
+    repository = new LocalStorageProjectRepository(() => localStorage);
   });
 
   describe('round trip', () => {
@@ -78,7 +78,7 @@ describe('LocalStorageProjectRepository', () => {
     it('survives a new repository over the same storage, which is what a reload is', async () => {
       await repository.save(project('p1', 'Reminders'));
 
-      const afterReload = new LocalStorageProjectRepository(localStorage);
+      const afterReload = new LocalStorageProjectRepository(() => localStorage);
 
       expect(await names(afterReload)).toEqual(['Reminders']);
       expect(await afterReload.load('p1')).toBeDefined();
@@ -122,7 +122,7 @@ describe('LocalStorageProjectRepository', () => {
         return false;
       };
 
-      await new LocalStorageProjectRepository(storage).save(project('p1'));
+      await new LocalStorageProjectRepository(() => storage).save(project('p1'));
 
       expect(writes).toEqual([projectKey('p1'), INDEX_KEY]);
     });
@@ -136,18 +136,28 @@ describe('LocalStorageProjectRepository', () => {
       expect(localStorage.getItem(INDEX_KEY)).not.toBeNull();
     });
 
-    it('lists a project whose index write failed, and repairs the index', async () => {
+    it('keeps a project whose index write failed, since only the index is behind, and repairs the index', async () => {
       await repository.save(project('p1', 'One'));
       const storage = new FailingStorage();
       storage.failWritesTo = (key) => key === INDEX_KEY;
 
-      await expect(new LocalStorageProjectRepository(storage).save(project('p2', 'Two'))).rejects.toMatchObject({
-        reason: 'quota-exceeded',
-      });
+      await expect(new LocalStorageProjectRepository(() => storage).save(project('p2', 'Two'))).resolves.toBeUndefined();
 
       expect(await names(repository)).toEqual(['One', 'Two']);
       const index: unknown = JSON.parse(localStorage.getItem(INDEX_KEY) ?? 'null');
       expect(index).toHaveLength(2);
+    });
+
+    it('repairs an index that still holds an earlier name or time for a project', async () => {
+      await repository.save(project('p1', 'Old name', '2026-10-08T09:00:00.000Z'));
+      const storage = new FailingStorage();
+      storage.failWritesTo = (key) => key === INDEX_KEY;
+      await new LocalStorageProjectRepository(() => storage).save(project('p1', 'New name', '2026-10-08T10:00:00.000Z'));
+
+      const listed = await repository.list();
+
+      expect(listed).toEqual([expect.objectContaining({ name: 'New name', updatedAt: '2026-10-08T10:00:00.000Z' })]);
+      expect(JSON.parse(localStorage.getItem(INDEX_KEY) ?? 'null')).toEqual(listed);
     });
 
     it('drops an index entry whose project is gone', async () => {
@@ -181,7 +191,7 @@ describe('LocalStorageProjectRepository', () => {
       const storage = new FailingStorage();
       storage.failWritesTo = () => true;
 
-      expect(await names(new LocalStorageProjectRepository(storage))).toEqual(['One']);
+      expect(await names(new LocalStorageProjectRepository(() => storage))).toEqual(['One']);
     });
 
     it('ignores keys that belong to something else', async () => {
@@ -197,20 +207,30 @@ describe('LocalStorageProjectRepository', () => {
       const storage = new FailingStorage();
       storage.failWritesTo = () => true;
 
-      const saving = new LocalStorageProjectRepository(storage).save(project('p1'));
+      const saving = new LocalStorageProjectRepository(() => storage).save(project('p1'));
 
       await expect(saving).rejects.toBeInstanceOf(ProjectStorageError);
       await expect(saving).rejects.toMatchObject({ reason: 'quota-exceeded' });
     });
 
-    it('rejects as unavailable when the browser refuses storage access', async () => {
+    it('rejects as unavailable when the browser refuses a write', async () => {
       const storage = new FailingStorage();
       storage.failWritesTo = () => true;
       storage.failure = new DOMException('Access is denied.', 'SecurityError');
 
-      await expect(new LocalStorageProjectRepository(storage).save(project('p1'))).rejects.toMatchObject({
+      await expect(new LocalStorageProjectRepository(() => storage).save(project('p1'))).rejects.toMatchObject({
         reason: 'unavailable',
       });
+    });
+
+    it('rejects as unavailable when merely reading the storage object throws, as a blocked browser does', async () => {
+      const blocked = new LocalStorageProjectRepository(() => {
+        throw new DOMException('Access is denied.', 'SecurityError');
+      });
+
+      await expect(blocked.list()).rejects.toMatchObject({ reason: 'unavailable' });
+      await expect(blocked.load('p1')).rejects.toMatchObject({ reason: 'unavailable' });
+      await expect(blocked.save(project('p1'))).rejects.toMatchObject({ reason: 'unavailable' });
     });
   });
 });

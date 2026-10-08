@@ -76,6 +76,18 @@ describe('ProjectListComponent', () => {
     expect((await repository.list()).map((summary) => summary.name)).toEqual(['Order Service']);
   });
 
+  it('creates one project however many times the form is submitted while it is working', async () => {
+    const page = await show();
+    const form = page.querySelector('form');
+
+    form?.dispatchEvent(new Event('submit', { cancelable: true }));
+    form?.dispatchEvent(new Event('submit', { cancelable: true }));
+    await settle();
+    await settle();
+
+    expect(await repository.list()).toHaveLength(1);
+  });
+
   it('tells the user when the browser cannot store their work', async () => {
     const full: ProjectRepository = {
       list: () => repository.list(),

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { ProjectStore } from '../../app/project-store';
 import { workflowFor } from '../../domain';
@@ -17,6 +17,8 @@ export class ProjectListComponent {
   protected readonly store = inject(ProjectStore);
   private readonly router = inject(Router);
 
+  protected readonly creating = signal(false);
+
   protected readonly rows = computed(() =>
     this.store.projects().map((project) => ({
       id: project.id,
@@ -32,7 +34,15 @@ export class ProjectListComponent {
 
   protected async create(event: Event, name: string): Promise<void> {
     event.preventDefault();
-    const id = await this.store.create(name, 'new-project');
-    await this.router.navigate(['/projects', id]);
+    if (this.creating()) {
+      return;
+    }
+    this.creating.set(true);
+    try {
+      const id = await this.store.create(name, 'new-project');
+      await this.router.navigate(['/projects', id]);
+    } finally {
+      this.creating.set(false);
+    }
   }
 }

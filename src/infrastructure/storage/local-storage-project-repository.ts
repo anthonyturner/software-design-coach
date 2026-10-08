@@ -8,19 +8,22 @@ const INDEX_KEY = 'design-coach:index';
 
 /**
  * One key per project plus an index of summaries (ADR-0008). A project is written before the
- * index, so a failure in between leaves a project the index does not name. `list()` treats the
- * project keys as the truth and repairs the index whenever the two disagree.
+ * index, so a failure in between leaves an index that is behind. `list()` treats the project keys
+ * as the truth and repairs the index whenever the two disagree.
+ *
+ * The storage object is resolved on every call, because merely reading `window.localStorage`
+ * throws in a browser that blocks site data; that has to surface as `unavailable`.
  */
 export class LocalStorageProjectRepository implements ProjectRepository {
-  constructor(private readonly storage: Storage) {}
+  constructor(private readonly resolveStorage: () => Storage) {}
 
   list(): Promise<readonly ProjectSummary[]> {
-    return attempt(() => this.readList());
+    return this.attempt(readList);
   }
 
   load(id: string): Promise<StoredProject | undefined> {
-    return attempt(() => {
-      const text = this.storage.getItem(projectKey(id));
+    return this.attempt((storage) => {
+      const text = storage.getItem(projectKey(id));
       if (text === null) {
         return undefined;
       }
@@ -33,67 +36,77 @@ export class LocalStorageProjectRepository implements ProjectRepository {
   }
 
   save(project: Project): Promise<void> {
-    return attempt(() => {
-      this.storage.setItem(projectKey(project.id), JSON.stringify(project));
-      const others = (this.readIndex() ?? []).filter((summary) => summary.id !== project.id);
-      this.writeIndex([...others, summarize(project)]);
+    return this.attempt((storage) => {
+      storage.setItem(projectKey(project.id), JSON.stringify(project));
+      const others = (readIndex(storage) ?? []).filter((summary) => summary.id !== project.id);
+      writeIndexIfItFits(storage, [...others, summarize(project)]);
     });
   }
 
   remove(id: string): Promise<void> {
-    return attempt(() => {
-      this.storage.removeItem(projectKey(id));
-      this.writeIndex((this.readIndex() ?? []).filter((summary) => summary.id !== id));
+    return this.attempt((storage) => {
+      storage.removeItem(projectKey(id));
+      writeIndexIfItFits(
+        storage,
+        (readIndex(storage) ?? []).filter((summary) => summary.id !== id),
+      );
     });
   }
 
-  private readList(): readonly ProjectSummary[] {
-    const storedIds = this.storedIds();
-    const indexed = this.readIndex();
-    if (indexed && sameIds(indexed, storedIds)) {
-      return indexed;
-    }
-    const rebuilt = storedIds.flatMap((id) => {
-      const summary = this.readSummary(id);
-      return summary ? [summary] : [];
-    });
+  private attempt<T>(work: (storage: Storage) => T): Promise<T> {
     try {
-      this.writeIndex(rebuilt);
+      return Promise.resolve(work(this.resolveStorage()));
     } catch (error: unknown) {
-      // The index only caches the project keys, so a repair that does not fit is redone by the next list().
-      if (!isQuotaError(error)) {
-        throw error;
-      }
+      return Promise.reject(asStorageError(error));
     }
-    return rebuilt;
   }
+}
 
-  private storedIds(): string[] {
-    const ids: string[] = [];
-    for (let position = 0; position < this.storage.length; position++) {
-      const key = this.storage.key(position);
-      if (key?.startsWith(PROJECT_KEY_PREFIX)) {
-        ids.push(key.slice(PROJECT_KEY_PREFIX.length));
-      }
+function readList(storage: Storage): readonly ProjectSummary[] {
+  const actual = storedIds(storage).flatMap((id) => {
+    const summary = readSummary(storage, id);
+    return summary ? [summary] : [];
+  });
+  const indexed = readIndex(storage);
+  if (!indexed || !sameSummaries(indexed, actual)) {
+    writeIndexIfItFits(storage, actual);
+  }
+  return actual;
+}
+
+function storedIds(storage: Storage): string[] {
+  const ids: string[] = [];
+  for (let position = 0; position < storage.length; position++) {
+    const key = storage.key(position);
+    if (key?.startsWith(PROJECT_KEY_PREFIX)) {
+      ids.push(key.slice(PROJECT_KEY_PREFIX.length));
     }
-    return ids;
   }
+  return ids;
+}
 
-  private readIndex(): ProjectSummary[] | undefined {
-    const text = this.storage.getItem(INDEX_KEY);
-    const parsed = text === null ? undefined : parseJson(text);
-    return Array.isArray(parsed) && parsed.every(isProjectSummary) ? parsed : undefined;
-  }
+function readIndex(storage: Storage): ProjectSummary[] | undefined {
+  const text = storage.getItem(INDEX_KEY);
+  const parsed = text === null ? undefined : parseJson(text);
+  return Array.isArray(parsed) && parsed.every(isProjectSummary) ? parsed : undefined;
+}
 
-  private writeIndex(summaries: readonly ProjectSummary[]): void {
-    this.storage.setItem(INDEX_KEY, JSON.stringify(summaries));
-  }
+function readSummary(storage: Storage, id: string): ProjectSummary | undefined {
+  const text = storage.getItem(projectKey(id));
+  const stored = text === null ? undefined : parseJson(text);
+  const project = isStoredProject(stored) ? migrateProject(stored) : undefined;
+  return project && summarize(project);
+}
 
-  private readSummary(id: string): ProjectSummary | undefined {
-    const text = this.storage.getItem(projectKey(id));
-    const stored = text === null ? undefined : parseJson(text);
-    const project = isStoredProject(stored) ? migrateProject(stored) : undefined;
-    return project && summarize(project);
+// The index only caches what the project keys say, and list() redoes it, so an index that does not
+// fit must not fail an operation whose project write already succeeded.
+function writeIndexIfItFits(storage: Storage, summaries: readonly ProjectSummary[]): void {
+  try {
+    storage.setItem(INDEX_KEY, JSON.stringify(summaries));
+  } catch (error: unknown) {
+    if (!isQuotaError(error)) {
+      throw error;
+    }
   }
 }
 
@@ -101,8 +114,19 @@ function projectKey(id: string): string {
   return PROJECT_KEY_PREFIX + id;
 }
 
-function sameIds(summaries: readonly ProjectSummary[], ids: readonly string[]): boolean {
-  return summaries.length === ids.length && summaries.every((summary) => ids.includes(summary.id));
+function sameSummaries(a: readonly ProjectSummary[], b: readonly ProjectSummary[]): boolean {
+  return (
+    a.length === b.length &&
+    a.every((left) =>
+      b.some(
+        (right) =>
+          right.id === left.id &&
+          right.name === left.name &&
+          right.mode === left.mode &&
+          right.updatedAt === left.updatedAt,
+      ),
+    )
+  );
 }
 
 /** Text that is not JSON counts as nothing stored: callers decide whether that is an error. */
@@ -114,14 +138,6 @@ function parseJson(text: string): unknown {
       return undefined;
     }
     throw error;
-  }
-}
-
-function attempt<T>(work: () => T): Promise<T> {
-  try {
-    return Promise.resolve(work());
-  } catch (error: unknown) {
-    return Promise.reject(asStorageError(error));
   }
 }
 

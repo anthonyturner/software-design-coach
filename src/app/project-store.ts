@@ -55,6 +55,7 @@ export class ProjectStore {
 
   constructor() {
     const page = inject(DOCUMENT).defaultView;
+    // Relies on the adapter finishing its write in microtasks; an asynchronous one (IndexedDB) could lose it.
     const saveBeforeLeaving = (): void => {
       void this.flush();
     };

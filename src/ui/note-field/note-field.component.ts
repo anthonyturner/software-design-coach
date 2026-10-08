@@ -19,6 +19,21 @@ export class NoteFieldComponent {
     computation: () => untracked(this.value) !== '',
   });
 
+  // The box holds what the user typed. It follows the stored note except when that note is empty only
+  // because the typed text was whitespace, so a blank typed while thinking is not wiped under the cursor.
+  protected readonly text = linkedSignal<{ stepId: string; value: string }, string>({
+    source: () => ({ stepId: this.stepId(), value: this.value() }),
+    computation: (source, previous) =>
+      previous && previous.source.stepId === source.stepId && source.value === '' && previous.value.trim() === ''
+        ? previous.value
+        : source.value,
+  });
+
+  protected edit(text: string): void {
+    this.text.set(text);
+    this.changed.emit(text);
+  }
+
   protected toggled(event: Event): void {
     if (event.target instanceof HTMLDetailsElement) {
       this.expanded.set(event.target.open);

@@ -183,7 +183,7 @@ describe('summaryOf', () => {
       ]);
     });
 
-    it('shows a list field as a list, and a reference by the name of the row it points at, not its id', () => {
+    it('shows a list field as a list, and a reference by the name of the row it points at, leaving out a row with no name as the lists do', () => {
       let project = withRow(newProject(), 'actor', 'a1', { name: 'Receptionist' });
       project = withRow(project, 'actor', 'a2', { name: 'Patient' });
       project = addEntity(project, 'actor', 'a3', now);
@@ -196,7 +196,7 @@ describe('summaryOf', () => {
         rows: [
           {
             name: 'Book a visit',
-            fields: [{ label: 'Who performs it?', value: { kind: 'list', items: ['Patient', 'Receptionist', 'Unnamed actor'] } }],
+            fields: [{ label: 'Who performs it?', value: { kind: 'list', items: ['Patient', 'Receptionist'] } }],
           },
         ],
       });

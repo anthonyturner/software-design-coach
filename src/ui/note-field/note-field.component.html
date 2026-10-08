@@ -1,6 +1,6 @@
 <details class="note" [open]="expanded()" (toggle)="toggled($event)">
   <summary class="note__toggle">
-    Notes
+    Write or read notes
     @if (value()) {
       <span class="note__mark">(written)</span>
     }
@@ -14,8 +14,8 @@
       id="step-note"
       rows="5"
       aria-describedby="step-note-hint"
-      [value]="value()"
-      (input)="changed.emit(textarea.value)"
+      [value]="text()"
+      (input)="edit(textarea.value)"
     ></textarea>
   </div>
 </details>

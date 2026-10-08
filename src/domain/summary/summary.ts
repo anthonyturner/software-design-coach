@@ -102,7 +102,7 @@ function fieldValue(project: Project, field: EntityField, row: Entity): SummaryV
   }
   const targets = project.entities[field.references];
   const names = (typeof stored === 'string' || stored === undefined ? [] : stored).flatMap((id) => {
-    const target = targets.find((candidate) => candidate.id === id);
+    const target = targets.find((candidate) => candidate.id === id && isNamed(candidate));
     return target ? [entityLabel(target, field.references)] : [];
   });
   return names.length > 0 ? { kind: 'list', items: names } : undefined;

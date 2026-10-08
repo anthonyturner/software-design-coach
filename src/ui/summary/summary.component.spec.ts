@@ -111,7 +111,7 @@ describe('SummaryComponent', () => {
       expect(all('.summary__step h3')).toEqual(workflowFor('new-project').steps.map((step, index) => `${index + 1}. ${step.title}`));
     });
 
-    it('is an article labelled by the project name, inside the page main landmark', async () => {
+    it('is an article labelled by the project name', async () => {
       const summary = await open(reminders());
       const article = summary.querySelector('article');
 

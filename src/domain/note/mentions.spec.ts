@@ -91,6 +91,32 @@ describe('notesMentioning', () => {
     });
   });
 
+  describe('a name that starts or ends with punctuation', () => {
+    it('is not found inside a longer name or a version', () => {
+      expect(mentioning('.NET', { modules: 'We use ASP.NET Core' })).toEqual([]);
+      expect(mentioning('.NET', { modules: 'We use .NET Core' })).toEqual(['modules']);
+      expect(mentioning('C#', { modules: 'Moving to C#4' })).toEqual([]);
+      expect(mentioning('C#', { modules: 'Moving to C# soon' })).toEqual(['modules']);
+      expect(mentioning('C++', { modules: 'Moving to C++17' })).toEqual([]);
+      expect(mentioning('C++', { modules: 'Moving to C++, then Rust' })).toEqual(['modules']);
+    });
+  });
+
+  describe('letters with accents', () => {
+    const decomposed = 'Café';
+
+    it('does not take a decomposed accent for a gap after the base letter', () => {
+      expect(mentioning('Cafe', { modules: `the ${decomposed} module` })).toEqual([]);
+      expect(mentioning(decomposed, { modules: 'the Cafe module' })).toEqual([]);
+    });
+
+    it('finds a name whichever way its accent is written', () => {
+      expect(mentioning(decomposed, { modules: `the ${decomposed} module` })).toEqual(['modules']);
+      expect(mentioning('Café', { modules: `the ${decomposed} module` })).toEqual(['modules']);
+      expect(mentioning(decomposed, { modules: 'the CAFÉ module' })).toEqual(['modules']);
+    });
+  });
+
   it('finds nothing for a name that is empty, rather than everything', () => {
     expect(mentioning('', { modules: 'Pricing' })).toEqual([]);
     expect(mentioning('   ', { modules: 'Pricing' })).toEqual([]);

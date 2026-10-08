@@ -9,7 +9,8 @@ export interface NoteMention {
   readonly text: string;
 }
 
-const WORD_CHARACTER = /[\p{L}\p{N}_]/u;
+/** What can continue a word: a letter, a digit or `_`, and the accents that combine with a letter. */
+const WORD = '[\\p{L}\\p{N}\\p{M}_]';
 
 /**
  * The notes that name `name`, in workflow order. A note names it when the name stands as a whole word
@@ -24,22 +25,23 @@ export function notesMentioning(project: Project, name: string): readonly NoteMe
   }
   return workflowFor(project.mode).steps.flatMap((step) => {
     const text = noteFor(project, step.id);
-    return pattern.test(text) ? [{ stepId: step.id, stepTitle: step.title, text }] : [];
+    return pattern.test(text.normalize('NFC')) ? [{ stepId: step.id, stepTitle: step.title, text }] : [];
   });
 }
 
-/** A pattern for the name as a whole word. A side of the name that is not a letter, digit or `_` needs no boundary: "C++" ends at the plus signs. */
+/**
+ * A pattern for the name as a whole word: nothing that continues a word may touch either end, whatever
+ * the name's own first and last characters are, so ".NET" is not in "ASP.NET" and "C++" is not in "C++17".
+ * Both sides are put in composed form first, so an accent matches however it was typed.
+ */
 function wholeWord(name: string): RegExp | undefined {
-  const trimmed = name.trim();
+  const trimmed = name.trim().normalize('NFC');
   if (trimmed === '') {
     return undefined;
   }
-  const characters = Array.from(trimmed);
   const body = trimmed
     .split(/\s+/)
     .map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
     .join('\\s+');
-  const before = WORD_CHARACTER.test(characters[0]) ? '(?<![\\p{L}\\p{N}_])' : '';
-  const after = WORD_CHARACTER.test(characters[characters.length - 1]) ? '(?![\\p{L}\\p{N}_])' : '';
-  return new RegExp(`${before}${body}${after}`, 'iu');
+  return new RegExp(`(?<!${WORD})${body}(?!${WORD})`, 'iu');
 }

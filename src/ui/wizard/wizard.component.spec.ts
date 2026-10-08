@@ -162,13 +162,14 @@ describe('WizardComponent', () => {
     expect(page.querySelectorAll('.step__challenges li')).toHaveLength(problem.challenges.length);
   });
 
-  it('shows Think, Decide, Challenge and Continue on a step', async () => {
+  it('shows Think, Decide, Challenge, Notes and Continue on a step', async () => {
     const page = await open('p1');
 
     expect([...page.querySelectorAll('.step__label')].map((label) => label.textContent)).toEqual([
       'Think',
       'Decide',
       'Challenge',
+      'Notes',
       'Continue',
     ]);
   });
@@ -1146,6 +1147,16 @@ describe('WizardComponent', () => {
       await press(page, 'Continue');
 
       expect(railState(page, 'Problem')).toBe(', not started');
+    });
+
+    it('sits in a section of its own, headed Notes, after Challenge and before Continue', async () => {
+      const page = await open('p1');
+      const sections = [...page.querySelectorAll('.step__section')];
+      const headings = sections.map((section) => section.querySelector('h4')?.textContent?.trim());
+      const holder = page.querySelector('sdc-note-field')?.closest('.step__section');
+
+      expect(headings).toEqual(['Think', 'Decide', 'Challenge', 'Notes', 'Continue']);
+      expect(holder?.querySelector('h4')?.textContent?.trim()).toBe('Notes');
     });
 
     it('links to the summary of the project', async () => {

@@ -40,11 +40,11 @@ describe('NoteFieldComponent', () => {
     return found;
   };
 
-  it('starts collapsed for a step with no note, behind a toggle called Notes', () => {
+  it('starts collapsed for a step with no note, behind a toggle that offers the notes', () => {
     render('goals', '');
 
     expect(disclosure().open).toBe(false);
-    expect(page().querySelector('summary')?.textContent?.trim()).toBe('Notes');
+    expect(page().querySelector('summary')?.textContent?.trim()).toBe('Write or read notes');
   });
 
   it('starts open for a step that already has a note, and says so on the toggle while it is closed', () => {
@@ -74,6 +74,38 @@ describe('NoteFieldComponent', () => {
 
   it('shows a note that arrives from outside', async () => {
     render('goals', '');
+
+    await show('goals', 'Typed elsewhere');
+
+    expect(textarea().value).toBe('Typed elsewhere');
+  });
+
+  it('keeps what the user typed in the box while the stored note is empty because it was only whitespace', async () => {
+    render('goals', 'Ask finance');
+
+    textarea().value = '  ';
+    textarea().dispatchEvent(new Event('input'));
+    await show('goals', '');
+
+    expect(textarea().value).toBe('  ');
+  });
+
+  it('does not carry a half-typed blank over to another step', async () => {
+    render('goals', '');
+    textarea().value = '  ';
+    textarea().dispatchEvent(new Event('input'));
+    await show('goals', '');
+
+    await show('users', '');
+
+    expect(textarea().value).toBe('');
+  });
+
+  it('shows the stored note again once it has text', async () => {
+    render('goals', '');
+    textarea().value = '  ';
+    textarea().dispatchEvent(new Event('input'));
+    await show('goals', '');
 
     await show('goals', 'Typed elsewhere');
 

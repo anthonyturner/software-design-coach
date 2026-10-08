@@ -5,6 +5,7 @@ import {
   isStoredProject,
   migrateProject,
   SCHEMA_VERSION,
+  setNote,
   updateEntity,
 } from '../../domain';
 import type { Project } from '../../domain';
@@ -174,6 +175,45 @@ describe('LocalStorageProjectRepository', () => {
       expect(await names(repository)).toEqual(['Saved with nine steps']);
       const resaved: unknown = JSON.parse(localStorage.getItem(projectKey('older')) ?? 'null');
       expect(isStoredProject(resaved) && resaved.schemaVersion).toBe(SCHEMA_VERSION);
+    });
+
+    it('gives back the notes on steps exactly as they were saved', async () => {
+      const at = '2026-10-08T09:01:00.000Z';
+      const goalsNote = 'Ask finance\nabout budget ';
+      let saved = setNote(project('p1', 'Reminders'), 'goals', goalsNote, at);
+      saved = setNote(saved, 'modules', 'Is Reminders too thin?', at);
+
+      await repository.save(saved);
+      const stored = await repository.load('p1');
+      const reopened = stored && migrateProject(stored);
+
+      expect(reopened).toEqual(saved);
+      expect(reopened?.notes).toEqual({ goals: goalsNote, modules: 'Is Reminders too thin?' });
+    });
+
+    it('still opens, lists and re-saves a project written before notes (schema 3)', async () => {
+      const slice5 = {
+        schemaVersion: 3,
+        id: 'before-notes',
+        name: 'Saved with no notes',
+        mode: 'feature-change',
+        answers: { why: { value: 'The desk stops phoning' } },
+        entities: { module: [{ id: 'm1', name: 'Reminders', fields: { purpose: 'Decides when one is due' } }] },
+        currentStepId: 'why',
+        createdAt: '2026-10-07T09:00:00.000Z',
+        updatedAt: '2026-10-07T09:30:00.000Z',
+      };
+      localStorage.setItem(projectKey('before-notes'), JSON.stringify(slice5));
+
+      const stored = await repository.load('before-notes');
+      const opened = stored && migrateProject(stored);
+      await repository.save(opened ? setNote(opened, 'why', 'Now with a note', '2026-10-08T09:00:00.000Z') : project('never'));
+
+      expect(opened?.notes).toEqual({});
+      expect(await names(repository)).toEqual(['Saved with no notes']);
+      const resaved: unknown = JSON.parse(localStorage.getItem(projectKey('before-notes')) ?? 'null');
+      expect(isStoredProject(resaved) && resaved.schemaVersion).toBe(SCHEMA_VERSION);
+      expect(resaved).toMatchObject({ notes: { why: 'Now with a note' } });
     });
 
     it('writes the schema version into every saved project', async () => {

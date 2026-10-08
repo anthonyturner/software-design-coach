@@ -1,4 +1,4 @@
-import { addEntity, answer, createProject, SCHEMA_VERSION, updateEntity } from './project';
+import { addEntity, answer, createProject, SCHEMA_VERSION, setNote, updateEntity } from './project';
 import { isStoredProject, migrateProject } from './stored';
 
 const now = '2026-10-08T09:00:00.000Z';
@@ -46,6 +46,29 @@ function sliceTwoProject(): unknown {
       module: [
         { id: 'm1', name: 'Reminders', fields: { purpose: 'Decides when one is due' } },
         { id: 'm2', name: 'Messaging', fields: { purpose: 'Sends the text' } },
+      ],
+    },
+    currentStepId: 'modules',
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+/** A project exactly as the Feature / Change slice wrote it: full module details, and no notes. */
+function sliceFiveProject(): unknown {
+  return {
+    schemaVersion: 3,
+    id: 'p3',
+    name: 'Reminders',
+    mode: 'new-project',
+    answers: { goals: { goals: ['fewer no-shows'] } },
+    entities: {
+      module: [
+        {
+          id: 'm1',
+          name: 'Reminders',
+          fields: { purpose: 'Decides when one is due', responsibilities: ['Time it'], hides: 'Timing rules', interface: '', dependsOn: [] },
+        },
       ],
     },
     currentStepId: 'modules',
@@ -286,6 +309,46 @@ describe('migrateProject', () => {
     it('still refuses a schema 2 project that is damaged', () => {
       expect(migrate({ ...(sliceTwoProject() as object), entities: 'none' })).toBeUndefined();
       expect(migrate({ ...(sliceTwoProject() as object), entities: { module: 'none' } })).toBeUndefined();
+    });
+  });
+
+  describe('notes', () => {
+    it('reads the notes a project was saved with', () => {
+      const saved = setNote(JSON.parse(JSON.stringify(createProject({ id: 'p1', name: 'R', mode: 'new-project', now }))), 'goals', 'Ask finance', now);
+
+      expect(migrate(JSON.parse(JSON.stringify(saved)))?.notes).toEqual({ goals: 'Ask finance' });
+    });
+
+    it.each([
+      ['not a record', 'none'],
+      ['a list', ['a note']],
+      ['a note that is not text', { goals: 5 }],
+      ['a note that is a list', { goals: ['a', 'b'] }],
+    ])('refuses a project whose notes are %s', (_name, notes) => {
+      expect(migrate(withField('notes', notes))).toBeUndefined();
+    });
+
+    it('keeps a note against a step it does not know, as it keeps answers it does not know', () => {
+      expect(migrate(withField('notes', { later: 'kept' }))?.notes).toEqual({ later: 'kept' });
+    });
+  });
+
+  describe('from the Feature / Change slice (schema 3, before notes)', () => {
+    it('opens, as the current schema, with no notes and everything else kept', () => {
+      const project = migrate(sliceFiveProject());
+
+      expect(project).toMatchObject({
+        schemaVersion: SCHEMA_VERSION,
+        id: 'p3',
+        notes: {},
+        currentStepId: 'modules',
+        answers: { goals: { goals: ['fewer no-shows'] } },
+      });
+      expect(project?.entities.module.map((module) => module.name)).toEqual(['Reminders']);
+    });
+
+    it('still refuses a schema 3 project that is damaged', () => {
+      expect(migrate({ ...(sliceFiveProject() as object), answers: 'none' })).toBeUndefined();
     });
   });
 });

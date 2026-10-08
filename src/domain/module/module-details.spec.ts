@@ -1,6 +1,6 @@
 import { entityDefinitions } from '../entity/entity-definitions';
 import type { EntityEdit } from '../entity/entity.types';
-import { addEntity, createProject, removeEntity, updateEntity } from '../project/project';
+import { addEntity, createProject, removeEntity, setNote, updateEntity } from '../project/project';
 import type { Project } from '../project/project.types';
 import { moduleDetails } from './module-details';
 
@@ -66,6 +66,7 @@ describe('moduleDetails', () => {
       interfaceSketch: '',
       dependencies: [],
       dependents: [],
+      notes: [],
     });
   });
 
@@ -112,6 +113,36 @@ describe('moduleDetails', () => {
 
     it('stops listing a module that was removed', () => {
       expect(moduleDetails(removeEntity(wired, 'module', 'm3', now), 'm1')?.dependencies).toEqual(['Notifier']);
+    });
+  });
+
+  describe('notes', () => {
+    const scheduling = withModule(empty, 'm1', 'Scheduling');
+
+    it('lists the notes that name the module, with the step each is on, in workflow order', () => {
+      let project = setNote(scheduling, 'design-review', 'Scheduling still feels shallow', now);
+      project = setNote(project, 'modules', 'Is scheduling or Notifier first?', now);
+      project = setNote(project, 'goals', 'Nothing about it here', now);
+
+      expect(moduleDetails(project, 'm1')?.notes).toEqual([
+        { stepId: 'modules', stepTitle: 'Modules', text: 'Is scheduling or Notifier first?' },
+        { stepId: 'design-review', stepTitle: 'Design Review', text: 'Scheduling still feels shallow' },
+      ]);
+    });
+
+    it('follows a rename, so the notes shown are those that name it now', () => {
+      const project = setNote(setNote(scheduling, 'modules', 'Scheduling is big', now), 'goals', 'Booking is the goal', now);
+      const renamed = updateEntity(project, 'module', 'm1', { name: 'Booking' }, now);
+
+      expect(moduleDetails(project, 'm1')?.notes.map((note) => note.stepId)).toEqual(['modules']);
+      expect(moduleDetails(renamed, 'm1')?.notes.map((note) => note.stepId)).toEqual(['goals']);
+    });
+
+    it('does not mistake a module for a longer word that contains its name', () => {
+      const tax = withModule(empty, 'm1', 'Tax');
+      const project = setNote(tax, 'modules', 'The syntax of the config, and taxonomy', now);
+
+      expect(moduleDetails(project, 'm1')?.notes).toEqual([]);
     });
   });
 });

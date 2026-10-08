@@ -11,6 +11,7 @@ export interface Project {
   readonly name: string;
   readonly mode: ProjectMode;
   readonly answers: Readonly<Record<string, StepAnswers>>;
+  readonly notes: Readonly<Record<string, string>>;
   readonly entities: ProjectEntities;
   readonly currentStepId: string;
   readonly createdAt: string;

@@ -5,7 +5,7 @@ import { findQuestion, findStep, isProjectMode, workflowFor } from '../workflow/
 import type { ProjectMode, Question } from '../workflow/workflow.types';
 import type { AnswerValue, Project, ProjectSummary, StepAnswers } from './project.types';
 
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 /** The answer to an `entity-fields` question that says no row has anything to list; an empty answer takes it back. */
 export const NONE_ANSWER = 'none';
@@ -25,6 +25,7 @@ export function createProject(input: {
     name: input.name.trim() || UNTITLED,
     mode: input.mode,
     answers: {},
+    notes: {},
     entities: emptyEntities(),
     currentStepId: workflowFor(input.mode).steps[0].id,
     createdAt: input.now,
@@ -78,6 +79,24 @@ export function removeEntity(project: Project, kind: EntityKind, id: string, now
     return project;
   }
   return { ...project, entities, answers: withoutAnswers(project, (question, value) => question.kind === 'entity-choice' && question.entity === kind && value === id), updatedAt: now };
+}
+
+/**
+ * Keeps the text as the user's note on a step, exactly as typed. Text that is only whitespace is no
+ * note, so a cleared note leaves nothing behind, and a step the workflow does not have takes none.
+ */
+export function setNote(project: Project, stepId: string, text: string, now: string): Project {
+  const note = text.trim() === '' ? '' : text;
+  if (!findStep(workflowFor(project.mode), stepId) || note === noteFor(project, stepId)) {
+    return project;
+  }
+  const others = Object.entries(project.notes).filter(([id]) => id !== stepId);
+  return { ...project, notes: Object.fromEntries(note === '' ? others : [...others, [stepId, note]]), updatedAt: now };
+}
+
+/** The user's note on a step, or the empty string when there is none. */
+export function noteFor(project: Project, stepId: string): string {
+  return project.notes[stepId] ?? '';
 }
 
 export function goTo(project: Project, stepId: string, now: string): Project {

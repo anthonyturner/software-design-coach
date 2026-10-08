@@ -6,7 +6,9 @@ import {
   goTo,
   isProjectSummary,
   moveEntity,
+  noteFor,
   removeEntity,
+  setNote,
   stepAnswers,
   summarize,
   updateEntity,
@@ -29,6 +31,7 @@ describe('createProject', () => {
       name: 'Reminders',
       mode: 'new-project',
       answers: {},
+      notes: {},
       entities: emptyEntities(),
       currentStepId: 'problem',
       createdAt: created,
@@ -373,5 +376,63 @@ describe('removing a row nothing chose', () => {
     const project = answer(addEntity(newProject(), 'actor', 'a1', later), 'goals', 'goals', ['fewer no-shows'], later);
 
     expect(removeEntity(project, 'actor', 'a1', later).answers).toBe(project.answers);
+  });
+});
+
+describe('setNote', () => {
+  it('keeps a note against a step, and reads it back', () => {
+    const project = setNote(newProject(), 'goals', 'Ask finance about the budget', later);
+
+    expect(noteFor(project, 'goals')).toBe('Ask finance about the budget');
+    expect(project.updatedAt).toBe(later);
+  });
+
+  it('keeps notes for different steps apart and replaces the note on rewriting it', () => {
+    let project = setNote(newProject(), 'goals', 'first', later);
+    project = setNote(project, 'users', 'about users', later);
+    project = setNote(project, 'goals', 'second', later);
+
+    expect(noteFor(project, 'goals')).toBe('second');
+    expect(noteFor(project, 'users')).toBe('about users');
+  });
+
+  it('keeps the text exactly as typed, so a trailing space is not tidied away under the cursor', () => {
+    const typed = ' a note \n';
+
+    expect(noteFor(setNote(newProject(), 'goals', typed, later), 'goals')).toBe(typed);
+  });
+
+  it('treats a note of only whitespace as no note, so the stored project holds no empty entries', () => {
+    const written = setNote(newProject(), 'goals', 'a note', created);
+    const cleared = setNote(written, 'goals', ' \t ', later);
+
+    expect(noteFor(cleared, 'goals')).toBe('');
+    expect(cleared.notes).toEqual({});
+  });
+
+  it('changes nothing, and returns the same project, when the text is the same', () => {
+    const written = setNote(newProject(), 'goals', 'a note', created);
+
+    expect(setNote(written, 'goals', 'a note', later)).toBe(written);
+    expect(setNote(newProject(), 'goals', '', later)).toEqual(newProject());
+    const empty = newProject();
+    expect(setNote(empty, 'goals', '  ', later)).toBe(empty);
+  });
+
+  it('ignores a note for a step the workflow does not have', () => {
+    const project = newProject();
+
+    expect(setNote(project, 'not-a-step', 'lost', later)).toBe(project);
+  });
+
+  it('reads a step with no note as an empty one', () => {
+    expect(noteFor(newProject(), 'goals')).toBe('');
+  });
+
+  it('works in a Feature / Change project against the steps of its own workflow', () => {
+    const project = createProject({ id: 'f1', name: 'Cancel by text', mode: 'feature-change', now: created });
+
+    expect(noteFor(setNote(project, 'why', 'ask support', later), 'why')).toBe('ask support');
+    expect(setNote(project, 'goals', 'a New Project step', later)).toBe(project);
   });
 });

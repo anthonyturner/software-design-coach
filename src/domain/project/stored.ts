@@ -20,6 +20,7 @@ export function isStoredProject(value: unknown): value is StoredProject {
 const upgrades: Readonly<Record<number, (stored: StoredProject) => StoredProject>> = {
   1: fromSchema1,
   2: fromSchema2,
+  3: fromSchema3,
 };
 
 /**
@@ -32,12 +33,13 @@ export function migrateProject(stored: StoredProject): Project | undefined {
   if (!current) {
     return undefined;
   }
-  const { name, mode, answers, entities, currentStepId, createdAt, updatedAt } = current;
+  const { name, mode, answers, notes, entities, currentStepId, createdAt, updatedAt } = current;
   const parsedEntities = parseEntities(entities);
   if (
     typeof name !== 'string' ||
     !isProjectMode(mode) ||
     !isAnswers(answers) ||
+    !isNotes(notes) ||
     !parsedEntities ||
     typeof currentStepId !== 'string' ||
     typeof createdAt !== 'string' ||
@@ -52,6 +54,7 @@ export function migrateProject(stored: StoredProject): Project | undefined {
     name,
     mode,
     answers,
+    notes,
     entities: parsedEntities,
     currentStepId: knownStep ? currentStepId : workflowFor(mode).steps[0].id,
     createdAt,
@@ -113,6 +116,11 @@ function fromSchema2(stored: StoredProject): StoredProject {
   return { ...stored, schemaVersion: 3, entities: { ...entities, module: modules.map(withModuleDetails) } };
 }
 
+/** Schema 4 keeps a note per step. Projects saved before had none. */
+function fromSchema3(stored: StoredProject): StoredProject {
+  return { ...stored, schemaVersion: 4, notes: {} };
+}
+
 function withModuleDetails(row: unknown): unknown {
   if (!isRecord(row) || !isRecord(row['fields'])) {
     return row;
@@ -150,6 +158,10 @@ function isEntity(value: unknown): value is Entity {
 
 function isAnswers(value: unknown): value is Readonly<Record<string, StepAnswers>> {
   return isRecord(value) && Object.values(value).every(isStepAnswers);
+}
+
+function isNotes(value: unknown): value is Readonly<Record<string, string>> {
+  return isRecord(value) && Object.values(value).every((note) => typeof note === 'string');
 }
 
 function isStepAnswers(value: unknown): value is StepAnswers {

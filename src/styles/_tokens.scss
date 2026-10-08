@@ -1,0 +1,59 @@
+// Design tokens for the dark theme (ADR-0006). Components read these and
+// never hold a colour, spacing or type literal of their own.
+:root {
+  color-scheme: dark;
+
+  // Colour: near-black blue surfaces, one restrained teal accent.
+  --sdc-color-bg: #0a0d12;
+  --sdc-color-surface: #11151c;
+  --sdc-color-surface-raised: #171c25;
+  --sdc-color-border: #232a36;
+  --sdc-color-border-strong: #313a4a;
+  --sdc-color-grid: rgb(255 255 255 / 3.5%);
+  --sdc-color-text: #e6e9ef;
+  --sdc-color-text-muted: #9aa4b5;
+  --sdc-color-accent: #5fd4c3;
+  --sdc-color-accent-contrast: #05201c;
+  --sdc-color-focus: #8be3d6;
+
+  // Spacing: a 4px scale expressed in rem.
+  --sdc-space-1: 0.25rem;
+  --sdc-space-2: 0.5rem;
+  --sdc-space-3: 0.75rem;
+  --sdc-space-4: 1rem;
+  --sdc-space-5: 1.5rem;
+  --sdc-space-6: 2rem;
+  --sdc-space-7: 3rem;
+  --sdc-space-8: 4rem;
+
+  // Type scale and families.
+  --sdc-font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --sdc-font-mono: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, Consolas, monospace;
+  --sdc-font-size-xs: 0.75rem;
+  --sdc-font-size-sm: 0.875rem;
+  --sdc-font-size-md: 1rem;
+  --sdc-font-size-lg: 1.25rem;
+  --sdc-font-size-xl: 1.75rem;
+  --sdc-font-size-2xl: 2.5rem;
+  --sdc-font-weight-regular: 400;
+  --sdc-font-weight-medium: 500;
+  --sdc-font-weight-bold: 650;
+  --sdc-line-height-tight: 1.2;
+  --sdc-line-height-body: 1.6;
+  --sdc-letter-spacing-tight: -0.02em;
+  --sdc-letter-spacing-caps: 0.08em;
+
+  // Shape and depth.
+  --sdc-radius-sm: 4px;
+  --sdc-radius-md: 8px;
+  --sdc-radius-lg: 12px;
+  --sdc-border-width: 1px;
+  --sdc-focus-ring-width: 2px;
+  --sdc-elevation-1: 0 1px 2px rgb(0 0 0 / 40%);
+  --sdc-elevation-2: 0 8px 24px rgb(0 0 0 / 45%);
+
+  // Layout.
+  --sdc-grid-size: 32px;
+  --sdc-header-height: 3.5rem;
+  --sdc-content-max-width: 72rem;
+}

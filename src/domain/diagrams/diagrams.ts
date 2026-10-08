@@ -1,8 +1,8 @@
-import { isNamed } from '../entity/entities';
+import { isNamed, listField, textField } from '../entity/entities';
 import type { Entity, EntityKind } from '../entity/entity.types';
 import { stepAnswers } from '../project/project';
 import type { Project } from '../project/project.types';
-import type { DiagramKind } from './diagram.types';
+import type { DiagramKind, ModuleNode } from './diagram.types';
 
 /**
  * Where the first-slice diagram reads its answers. `diagrams.spec.ts` checks that the workflow still
@@ -48,6 +48,22 @@ export function diagramFor(project: Project, kind: DiagramKind): string | undefi
   return body.length === 0 ? undefined : [`flowchart ${direction}`, ...body.map((line) => `  ${line}`)].join('\n');
 }
 
+/**
+ * The nodes of a diagram that stand for a module, so whatever draws the diagram can open that module
+ * when one is activated. Each carries the row's own id: a node id is looked up among the known rows,
+ * never worked back into a row id, since the clean-up that makes it a node id loses characters.
+ */
+export function moduleNodes(project: Project, kind: DiagramKind): readonly ModuleNode[] {
+  if (kind !== 'module' && kind !== 'dependency') {
+    return [];
+  }
+  return named(project, 'module').map((module) => ({
+    nodeId: nodeId(module.id),
+    moduleId: module.id,
+    name: module.name.trim(),
+  }));
+}
+
 function drawSystemContext(project: Project): readonly string[] {
   const actors = named(project, 'actor');
   const externals = named(project, 'external-system');
@@ -59,7 +75,7 @@ function drawSystemContext(project: Project): readonly string[] {
     ...actors.map((actor) => node(nodeId(actor.id), 'box', label(actor.name))),
     ...externals.map((external) => node(nodeId(external.id), 'subroutine', label(external.name))),
     ...actors.map((actor) => link(nodeId(actor.id), '-->', SYSTEM)),
-    ...externals.map((external) => link(SYSTEM, '<-->', nodeId(external.id), label(text(external, 'purpose')))),
+    ...externals.map((external) => link(SYSTEM, '<-->', nodeId(external.id), label(textField(external, 'purpose')))),
   ];
 }
 
@@ -77,7 +93,7 @@ function drawUseCases(project: Project): readonly string[] {
           'end',
         ]),
     ...useCases.flatMap((useCase) =>
-      list(useCase, 'actors')
+      listField(useCase, 'actors')
         .filter((id) => actorIds.has(id))
         .map((id) => link(nodeId(id), '-->', nodeId(useCase.id))),
     ),
@@ -90,7 +106,7 @@ function drawDomainModel(project: Project): readonly string[] {
   const joined = new Set<string>();
   const joins: string[] = [];
   for (const concept of concepts) {
-    for (const other of list(concept, 'related').filter((id) => known.has(id))) {
+    for (const other of listField(concept, 'related').filter((id) => known.has(id))) {
       const pair = [concept.id, other].sort().join('\n');
       if (!joined.has(pair)) {
         joined.add(pair);
@@ -108,7 +124,7 @@ function drawModules(project: Project): readonly string[] {
   }
   return [
     `subgraph ${SYSTEM}["${label(project.name)}"]`,
-    ...modules.map((module) => `  ${node(nodeId(module.id), 'box', label(module.name, text(module, 'purpose')))}`),
+    ...modules.map((module) => `  ${node(nodeId(module.id), 'box', label(module.name, textField(module, 'purpose')))}`),
     'end',
   ];
 }
@@ -119,7 +135,7 @@ function drawDependencies(project: Project): readonly string[] {
   return [
     ...modules.map((module) => node(nodeId(module.id), 'box', label(module.name))),
     ...modules.flatMap((module) =>
-      list(module, 'dependsOn')
+      listField(module, 'dependsOn')
         .filter((id) => known.has(id))
         .map((id) => link(nodeId(module.id), '-->', nodeId(id))),
     ),
@@ -133,7 +149,7 @@ function drawFirstSlice(project: Project): readonly string[] {
   if (!useCase) {
     return [];
   }
-  const performers = list(useCase, 'actors');
+  const performers = listField(useCase, 'actors');
   const actors = named(project, 'actor').filter((actor) => performers.includes(actor.id));
   const hops = hopsOf(answers[SLICE.path]);
   const chain = [nodeId(useCase.id), ...hops.map((_, index) => `hop${index + 1}`)];
@@ -159,16 +175,6 @@ function hopsOf(answer: unknown): readonly string[] {
 
 function named(project: Project, kind: EntityKind): readonly Entity[] {
   return project.entities[kind].filter(isNamed);
-}
-
-function text(entity: Entity, key: string): string {
-  const value = entity.fields[key];
-  return typeof value === 'string' ? value : '';
-}
-
-function list(entity: Entity, key: string): readonly string[] {
-  const value = entity.fields[key];
-  return typeof value === 'string' || value === undefined ? [] : value;
 }
 
 /**

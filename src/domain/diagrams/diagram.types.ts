@@ -14,3 +14,10 @@ export interface DiagramDefinition {
   /** What to do in the wizard to give the diagram something to draw. */
   readonly emptyText: string;
 }
+
+/** A diagram node that stands for a module: the id Mermaid draws it under, and the row it came from. */
+export interface ModuleNode {
+  readonly nodeId: string;
+  readonly moduleId: string;
+  readonly name: string;
+}

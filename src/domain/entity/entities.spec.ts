@@ -4,7 +4,9 @@ import {
   entityOptions,
   hasFieldContent,
   isNamed,
+  listField,
   referenceCandidates,
+  textField,
   withEditedEntity,
   withEntity,
   withMovedEntity,
@@ -375,5 +377,21 @@ describe('hasFieldContent', () => {
 
     expect(hasFieldContent(blank, 'module', 'responsibilities')).toBe(false);
     expect(hasFieldContent(unnamed, 'module', 'responsibilities')).toBe(false);
+  });
+});
+
+describe('reading a field', () => {
+  const row = { id: 'm1', name: 'Scheduling', fields: { purpose: 'Owns times', responsibilities: ['Find a slot'] } };
+
+  it('reads a text field as text and a list field as lines', () => {
+    expect(textField(row, 'purpose')).toBe('Owns times');
+    expect(listField(row, 'responsibilities')).toEqual(['Find a slot']);
+  });
+
+  it('reads a field of the other kind, or one the row does not have, as empty', () => {
+    expect(textField(row, 'responsibilities')).toBe('');
+    expect(textField(row, 'missing')).toBe('');
+    expect(listField(row, 'purpose')).toEqual([]);
+    expect(listField(row, 'missing')).toEqual([]);
   });
 });

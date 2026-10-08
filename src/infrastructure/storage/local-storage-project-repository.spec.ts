@@ -1,4 +1,12 @@
-import { answer, createProject, isStoredProject, migrateProject, SCHEMA_VERSION } from '../../domain';
+import {
+  addEntity,
+  answer,
+  createProject,
+  isStoredProject,
+  migrateProject,
+  SCHEMA_VERSION,
+  updateEntity,
+} from '../../domain';
 import type { Project } from '../../domain';
 import { ProjectStorageError } from '../../app/project-repository';
 import { LocalStorageProjectRepository } from './local-storage-project-repository';
@@ -52,7 +60,9 @@ describe('LocalStorageProjectRepository', () => {
 
   describe('round trip', () => {
     it('gives back what was saved, once migrated', async () => {
-      const saved = answer(project('p1', 'Reminders'), 'users', 'users', ['receptionist', 'patient'], '2026-10-08T09:01:00.000Z');
+      const at = '2026-10-08T09:01:00.000Z';
+      const answered = answer(project('p1', 'Reminders'), 'goals', 'goals', ['fewer no-shows', 'no calls'], at);
+      const saved = updateEntity(addEntity(answered, 'actor', 'a1', at), 'actor', 'a1', { name: 'Receptionist' }, at);
 
       await repository.save(saved);
       const stored = await repository.load('p1');

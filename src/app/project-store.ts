@@ -1,14 +1,29 @@
 import { DOCUMENT } from '@angular/common';
 import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core';
 import {
+  addEntity as appendEntity,
   answer as recordAnswer,
   createProject,
   goTo as moveTo,
   findStep,
+  journeyOf,
   migrateProject,
+  moveEntity as shiftEntity,
+  removeEntity as dropEntity,
+  updateEntity as editEntity,
   workflowFor,
 } from '../domain';
-import type { AnswerValue, Project, ProjectMode, ProjectSummary, Step, Workflow } from '../domain';
+import type {
+  AnswerValue,
+  EntityEdit,
+  EntityKind,
+  JourneyStop,
+  Project,
+  ProjectMode,
+  ProjectSummary,
+  Step,
+  Workflow,
+} from '../domain';
 import { PROJECT_CLOCK, PROJECT_ID_GENERATOR } from './project-environment';
 import { PROJECT_REPOSITORY, ProjectStorageError } from './project-repository';
 import type { StorageProblem } from './project-repository';
@@ -51,6 +66,11 @@ export class ProjectStore {
     const project = this.openProject();
     const workflow = this.workflow();
     return project && workflow && findStep(workflow, project.currentStepId);
+  });
+
+  readonly journey = computed<readonly JourneyStop[]>(() => {
+    const project = this.openProject();
+    return project ? journeyOf(project) : [];
   });
 
   constructor() {
@@ -117,6 +137,24 @@ export class ProjectStore {
 
   answer(stepId: string, questionId: string, value: AnswerValue): void {
     this.change((project, now) => recordAnswer(project, stepId, questionId, value, now));
+  }
+
+  /** Appends an empty row; the store makes up its id. */
+  addEntity(kind: EntityKind): void {
+    const id = this.newId();
+    this.change((project, now) => appendEntity(project, kind, id, now));
+  }
+
+  updateEntity(kind: EntityKind, id: string, edit: EntityEdit): void {
+    this.change((project, now) => editEntity(project, kind, id, edit, now));
+  }
+
+  moveEntity(kind: EntityKind, id: string, offset: number): void {
+    this.change((project, now) => shiftEntity(project, kind, id, offset, now));
+  }
+
+  removeEntity(kind: EntityKind, id: string): void {
+    this.change((project, now) => dropEntity(project, kind, id, now));
   }
 
   goTo(stepId: string): void {

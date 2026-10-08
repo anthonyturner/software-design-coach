@@ -1,3 +1,4 @@
+import type { ProjectEntities } from '../entity/entity.types';
 import type { ProjectMode } from '../workflow/workflow.types';
 
 export type AnswerValue = string | readonly string[];
@@ -10,6 +11,7 @@ export interface Project {
   readonly name: string;
   readonly mode: ProjectMode;
   readonly answers: Readonly<Record<string, StepAnswers>>;
+  readonly entities: ProjectEntities;
   readonly currentStepId: string;
   readonly createdAt: string;
   readonly updatedAt: string;

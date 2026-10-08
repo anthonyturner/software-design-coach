@@ -117,6 +117,79 @@ describe('ProjectStore', () => {
     });
   });
 
+  describe('editing entities', () => {
+    async function withActors(): Promise<{ store: ProjectStore; id: string }> {
+      const store = configure();
+      const id = await store.create('Reminders', 'new-project');
+      store.addEntity('actor');
+      store.addEntity('actor');
+      const [first, second] = (store.project()?.entities.actor ?? []).map((actor) => actor.id);
+      store.updateEntity('actor', first, { name: 'Receptionist' });
+      store.updateEntity('actor', second, { name: 'Patient' });
+      return { store, id };
+    }
+
+    const names = (store: ProjectStore): string[] => (store.project()?.entities.actor ?? []).map((actor) => actor.name);
+
+    it('adds a row with an id the store makes up, and shows it at once', async () => {
+      const { store } = await withActors();
+
+      expect(store.project()?.entities.actor.map((actor) => actor.id)).toEqual(['p2', 'p3']);
+      expect(names(store)).toEqual(['Receptionist', 'Patient']);
+    });
+
+    it('saves entity changes after the same pause as answers', async () => {
+      const { id } = await withActors();
+      await vi.advanceTimersByTimeAsync(AUTOSAVE_DELAY_MS);
+
+      const stored = await repository.load(id);
+
+      expect(JSON.stringify(stored?.['entities'])).toContain('Receptionist');
+    });
+
+    it('reorders and removes rows, and cleans references to a removed one', async () => {
+      const { store } = await withActors();
+      const [first, second] = (store.project()?.entities.actor ?? []).map((actor) => actor.id);
+      store.addEntity('use-case');
+      const useCase = store.project()?.entities['use-case'][0].id ?? '';
+      store.updateEntity('use-case', useCase, { fields: { actors: [first, second] } });
+
+      store.moveEntity('actor', second, -1);
+      expect(names(store)).toEqual(['Patient', 'Receptionist']);
+
+      store.removeEntity('actor', first);
+      expect(names(store)).toEqual(['Patient']);
+      expect(store.project()?.entities['use-case'][0].fields['actors']).toEqual([second]);
+    });
+
+    it('does not save when an edit changes nothing', async () => {
+      const { store } = await withActors();
+      await store.flush();
+      const save = vi.spyOn(repository, 'save');
+      const [first] = (store.project()?.entities.actor ?? []).map((actor) => actor.id);
+
+      store.updateEntity('actor', first, { name: 'Receptionist' });
+      store.moveEntity('actor', first, -1);
+      await vi.advanceTimersByTimeAsync(AUTOSAVE_DELAY_MS);
+
+      expect(save).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('the journey', () => {
+    it('is empty until a project is open, then follows the answers and the current step', async () => {
+      const store = configure();
+      expect(store.journey()).toEqual([]);
+
+      await store.create('Reminders', 'new-project');
+      expect(store.journey()[0]).toMatchObject({ stepId: 'problem', state: 'current' });
+
+      store.goTo('users');
+      expect(store.journey()[0].state).toBe('not-started');
+      expect(store.journey()[1].state).toBe('current');
+    });
+  });
+
   describe('moving between steps', () => {
     it('remembers the current step', async () => {
       const store = configure();
@@ -135,7 +208,9 @@ describe('ProjectStore', () => {
       const before = configure();
       const id = await before.create('Reminders', 'new-project');
       before.answer('problem', 'problem', 'No-shows cost chairs');
-      before.answer('users', 'users', ['receptionist', 'patient']);
+      before.answer('goals', 'goals', ['fewer no-shows', 'no reminder calls']);
+      before.addEntity('actor');
+      before.updateEntity('actor', 'p2', { name: 'Receptionist' });
       before.goTo('users');
       await before.flush();
       return id;
@@ -151,8 +226,9 @@ describe('ProjectStore', () => {
       expect(after.currentStep()?.id).toBe('users');
       expect(after.project()?.answers).toEqual({
         problem: { problem: 'No-shows cost chairs' },
-        users: { users: ['receptionist', 'patient'] },
+        goals: { goals: ['fewer no-shows', 'no reminder calls'] },
       });
+      expect(after.project()?.entities.actor.map((actor) => actor.name)).toEqual(['Receptionist']);
     });
 
     it('lists the saved project', async () => {

@@ -1,9 +1,11 @@
+import { emptyEntities, withEditedEntity, withEntity, withMovedEntity, withoutEntity } from '../entity/entities';
+import type { EntityEdit, EntityKind, ProjectEntities } from '../entity/entity.types';
 import { isRecord } from '../record';
 import { findQuestion, findStep, isProjectMode, workflowFor } from '../workflow/workflow';
 import type { ProjectMode, Question } from '../workflow/workflow.types';
 import type { AnswerValue, Project, ProjectSummary, StepAnswers } from './project.types';
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 const UNTITLED = 'Untitled project';
 const NO_ANSWERS: StepAnswers = Object.freeze({});
@@ -20,6 +22,7 @@ export function createProject(input: {
     name: input.name.trim() || UNTITLED,
     mode: input.mode,
     answers: {},
+    entities: emptyEntities(),
     currentStepId: workflowFor(input.mode).steps[0].id,
     createdAt: input.now,
     updatedAt: input.now,
@@ -42,6 +45,24 @@ export function answer(
     answers: { ...project.answers, [stepId]: { ...stepAnswers(project, stepId), [questionId]: value } },
     updatedAt: now,
   };
+}
+
+export function addEntity(project: Project, kind: EntityKind, id: string, now: string): Project {
+  return withEntities(project, withEntity(project.entities, kind, id), now);
+}
+
+export function updateEntity(project: Project, kind: EntityKind, id: string, edit: EntityEdit, now: string): Project {
+  return withEntities(project, withEditedEntity(project.entities, kind, id, edit), now);
+}
+
+/** Moves a row up (negative offset) or down (positive) among the rows of its kind. */
+export function moveEntity(project: Project, kind: EntityKind, id: string, offset: number, now: string): Project {
+  return withEntities(project, withMovedEntity(project.entities, kind, id, offset), now);
+}
+
+/** Removes a row and, with it, every reference to it from other rows. */
+export function removeEntity(project: Project, kind: EntityKind, id: string, now: string): Project {
+  return withEntities(project, withoutEntity(project.entities, kind, id), now);
 }
 
 export function goTo(project: Project, stepId: string, now: string): Project {
@@ -69,6 +90,20 @@ export function isProjectSummary(value: unknown): value is ProjectSummary {
   );
 }
 
+function withEntities(project: Project, entities: ProjectEntities, now: string): Project {
+  return entities === project.entities ? project : { ...project, entities, updatedAt: now };
+}
+
 function fits(question: Question, value: AnswerValue): boolean {
-  return question.kind === 'string-list' ? typeof value !== 'string' : typeof value === 'string';
+  switch (question.kind) {
+    case 'short-text':
+    case 'long-text':
+      return typeof value === 'string';
+    case 'string-list':
+      return typeof value !== 'string';
+    case 'choice':
+      return typeof value === 'string' && question.options.some((option) => option.value === value);
+    case 'entity-list':
+      return false;
+  }
 }

@@ -1,0 +1,19 @@
+<fieldset class="choice" [attr.aria-describedby]="describedBy()">
+  <legend class="field__label">{{ question().prompt }}</legend>
+  @if (question().hint; as hint) {
+    <p class="field__hint" [id]="hintId()">{{ hint }}</p>
+  }
+  @for (option of options(); track option.value) {
+    <label class="choice__option">
+      <input
+        class="choice__radio"
+        type="radio"
+        [attr.name]="groupId()"
+        [value]="option.value"
+        [checked]="option.checked"
+        (change)="answered.emit(option.value)"
+      />
+      <span>{{ option.label }}</span>
+    </label>
+  }
+</fieldset>

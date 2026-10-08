@@ -3,12 +3,13 @@ import { RouterLink } from '@angular/router';
 import { ProjectStore } from '../../app/project-store';
 import { adjacentSteps, stepAnswers } from '../../domain';
 import type { AnswerValue } from '../../domain';
+import { JourneyRailComponent } from '../journey-rail/journey-rail.component';
 import { StepPanelComponent } from '../step-panel/step-panel.component';
 import { StorageNoticeComponent } from '../storage-notice/storage-notice.component';
 
 @Component({
   selector: 'sdc-wizard',
-  imports: [RouterLink, StepPanelComponent, StorageNoticeComponent],
+  imports: [JourneyRailComponent, RouterLink, StepPanelComponent, StorageNoticeComponent],
   templateUrl: './wizard.component.html',
   styleUrl: './wizard.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -31,6 +32,7 @@ export class WizardComponent {
       workflowTitle: workflow.title,
       step,
       answers: stepAnswers(project, step.id),
+      entities: project.entities,
       stepNumber: workflow.steps.indexOf(step) + 1,
       stepCount: workflow.steps.length,
       previousId: previous?.id,

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input, linkedSignal, output } from '@angular/core';
-import type { AnswerValue, Question } from '../../domain';
+import type { AnswerValue, TextQuestion } from '../../domain';
 import { answerFromText, textOfAnswer } from './answer-text';
 
 @Component({
@@ -9,7 +9,7 @@ import { answerFromText, textOfAnswer } from './answer-text';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AnswerFieldComponent {
-  readonly question = input.required<Question>();
+  readonly question = input.required<TextQuestion>();
   readonly value = input<AnswerValue | undefined>();
   readonly answered = output<AnswerValue>();
 
@@ -19,7 +19,7 @@ export class AnswerFieldComponent {
 
   // The draft is the text in the box. It follows the stored answer only when that answer was not
   // produced by the draft itself, so typing a blank line is not tidied away under the cursor.
-  protected readonly text = linkedSignal<{ question: Question; value: AnswerValue | undefined }, string>({
+  protected readonly text = linkedSignal<{ question: TextQuestion; value: AnswerValue | undefined }, string>({
     source: () => ({ question: this.question(), value: this.value() }),
     computation: ({ question, value }, previous) =>
       previous && textOfAnswer(answerFromText(question.kind, previous.value)) === textOfAnswer(value)

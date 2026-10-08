@@ -1,0 +1,9 @@
+// Media queries cannot read CSS custom properties, so the one layout
+// breakpoint lives here as a Sass value that components include.
+$narrow-max-width: 56rem;
+
+@mixin narrow {
+  @media (max-width: $narrow-max-width) {
+    @content;
+  }
+}

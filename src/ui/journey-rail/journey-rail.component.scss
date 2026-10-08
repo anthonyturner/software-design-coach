@@ -1,0 +1,86 @@
+@use '../../styles/breakpoints';
+
+.rail {
+  &__title {
+    margin-bottom: var(--sdc-space-3);
+    color: var(--sdc-color-text-muted);
+    font-size: var(--sdc-font-size-xs);
+    letter-spacing: var(--sdc-letter-spacing-caps);
+    text-transform: uppercase;
+  }
+
+  &__list {
+    display: grid;
+    gap: var(--sdc-space-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__step {
+    display: flex;
+    align-items: center;
+    gap: var(--sdc-space-3);
+    width: 100%;
+    padding: var(--sdc-space-2) var(--sdc-space-3);
+    background: transparent;
+    border: var(--sdc-border-width) solid transparent;
+    border-radius: var(--sdc-radius-sm);
+    color: var(--sdc-color-text-muted);
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+
+    &:hover {
+      background: var(--sdc-color-surface-raised);
+      color: var(--sdc-color-text);
+    }
+
+    &--done {
+      color: var(--sdc-color-text);
+    }
+
+    &--in-progress {
+      color: var(--sdc-color-text);
+    }
+
+    &--current {
+      background: var(--sdc-color-surface);
+      border-color: var(--sdc-color-accent);
+      color: var(--sdc-color-text);
+      font-weight: var(--sdc-font-weight-medium);
+    }
+  }
+
+  &__marker {
+    flex: none;
+    width: 1.25em;
+    color: var(--sdc-color-accent);
+    text-align: center;
+  }
+
+  &__step--not-started &__marker {
+    color: var(--sdc-color-text-muted);
+  }
+
+  // Read out by screen readers after the step name, but not drawn.
+  &__state {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  @include breakpoints.narrow {
+    &__list {
+      display: flex;
+      flex-wrap: wrap;
+    }
+
+    &__step {
+      width: auto;
+    }
+  }
+}

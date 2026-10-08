@@ -1,4 +1,4 @@
-import type { AnswerKind, AnswerValue } from '../../domain';
+import type { AnswerValue, TextQuestion } from '../../domain';
 
 export function textOfAnswer(value: AnswerValue | undefined): string {
   if (value === undefined) {
@@ -7,7 +7,7 @@ export function textOfAnswer(value: AnswerValue | undefined): string {
   return typeof value === 'string' ? value : value.join('\n');
 }
 
-export function answerFromText(kind: AnswerKind, text: string): AnswerValue {
+export function answerFromText(kind: TextQuestion['kind'], text: string): AnswerValue {
   if (kind !== 'string-list') {
     return text;
   }

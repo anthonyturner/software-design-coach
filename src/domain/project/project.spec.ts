@@ -1,4 +1,16 @@
-import { answer, createProject, goTo, isProjectSummary, stepAnswers, summarize, SCHEMA_VERSION } from './project';
+import {
+  addEntity,
+  answer,
+  createProject,
+  goTo,
+  isProjectSummary,
+  moveEntity,
+  removeEntity,
+  stepAnswers,
+  summarize,
+  updateEntity,
+  SCHEMA_VERSION,
+} from './project';
 
 const created = '2026-10-08T09:00:00.000Z';
 const later = '2026-10-08T09:05:00.000Z';
@@ -15,6 +27,7 @@ describe('createProject', () => {
       name: 'Reminders',
       mode: 'new-project',
       answers: {},
+      entities: { actor: [], 'use-case': [], concept: [], 'external-system': [], module: [] },
       currentStepId: 'problem',
       createdAt: created,
       updatedAt: created,
@@ -42,9 +55,15 @@ describe('answer', () => {
   });
 
   it('records a list answer', () => {
-    const project = answer(newProject(), 'users', 'users', ['receptionist', 'patient'], later);
+    const project = answer(newProject(), 'goals', 'goals', ['fewer no-shows', 'no calls'], later);
 
-    expect(stepAnswers(project, 'users')['users']).toEqual(['receptionist', 'patient']);
+    expect(stepAnswers(project, 'goals')['goals']).toEqual(['fewer no-shows', 'no calls']);
+  });
+
+  it('records a chosen option', () => {
+    const project = answer(newProject(), 'system-boundary', 'kind', 'service', later);
+
+    expect(stepAnswers(project, 'system-boundary')['kind']).toBe('service');
   });
 
   it('replaces an earlier answer and keeps the others', () => {
@@ -86,7 +105,68 @@ describe('answer', () => {
     const before = newProject();
 
     expect(answer(before, 'problem', 'problem', ['not', 'text'], later)).toBe(before);
-    expect(answer(before, 'users', 'users', 'not a list', later)).toBe(before);
+    expect(answer(before, 'goals', 'goals', 'not a list', later)).toBe(before);
+  });
+
+  it('ignores a choice that is not one of the options', () => {
+    const before = newProject();
+
+    expect(answer(before, 'system-boundary', 'kind', 'spaceship', later)).toBe(before);
+    expect(answer(before, 'system-boundary', 'kind', ['service'], later)).toBe(before);
+  });
+
+  it('ignores an answer to an entity list, which is edited row by row', () => {
+    const before = newProject();
+
+    expect(answer(before, 'users', 'users', ['receptionist'], later)).toBe(before);
+  });
+});
+
+describe('editing entities', () => {
+  function withTwoActors(): ReturnType<typeof createProject> {
+    let project = addEntity(newProject(), 'actor', 'a1', later);
+    project = updateEntity(project, 'actor', 'a1', { name: 'Receptionist' }, later);
+    project = addEntity(project, 'actor', 'a2', later);
+    return updateEntity(project, 'actor', 'a2', { name: 'Patient' }, later);
+  }
+
+  it('adds, renames, reorders and removes rows', () => {
+    const moved = moveEntity(withTwoActors(), 'actor', 'a2', -1, later);
+
+    expect(moved.entities.actor.map((actor) => actor.name)).toEqual(['Patient', 'Receptionist']);
+    expect(removeEntity(moved, 'actor', 'a2', later).entities.actor.map((actor) => actor.name)).toEqual(['Receptionist']);
+  });
+
+  it('stamps when the project last changed', () => {
+    const project = addEntity(newProject(), 'actor', 'a1', later);
+
+    expect(project.updatedAt).toBe(later);
+  });
+
+  it('leaves the project it was given untouched', () => {
+    const before = newProject();
+
+    addEntity(before, 'actor', 'a1', later);
+
+    expect(before).toEqual(newProject());
+  });
+
+  it('returns the same project when nothing changed, so nothing is saved needlessly', () => {
+    const project = withTwoActors();
+
+    expect(updateEntity(project, 'actor', 'a1', { name: 'Receptionist' }, later)).toBe(project);
+    expect(moveEntity(project, 'actor', 'a1', -1, later)).toBe(project);
+    expect(removeEntity(project, 'actor', 'ghost', later)).toBe(project);
+    expect(addEntity(project, 'actor', 'a1', later)).toBe(project);
+  });
+
+  it('removes an actor from the use cases that named it', () => {
+    let project = addEntity(withTwoActors(), 'use-case', 'u1', later);
+    project = updateEntity(project, 'use-case', 'u1', { name: 'Confirm', fields: { actors: ['a1', 'a2'] } }, later);
+
+    project = removeEntity(project, 'actor', 'a1', later);
+
+    expect(project.entities['use-case'][0].fields['actors']).toEqual(['a2']);
   });
 });
 

@@ -10,8 +10,18 @@
   font: inherit;
   font-weight: var(--sdc-font-weight-medium);
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: var(--sdc-color-surface-raised);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  &--small {
+    padding: var(--sdc-space-1) var(--sdc-space-3);
+    font-size: var(--sdc-font-size-sm);
   }
 
   &--primary {
@@ -19,7 +29,7 @@
     border-color: var(--sdc-color-accent);
     color: var(--sdc-color-accent-contrast);
 
-    &:hover {
+    &:hover:not(:disabled) {
       background: var(--sdc-color-focus);
     }
   }

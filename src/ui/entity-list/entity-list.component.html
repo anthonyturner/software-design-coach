@@ -1,0 +1,110 @@
+<div
+  class="entities"
+  role="group"
+  [attr.aria-labelledby]="list().promptId"
+  [attr.aria-describedby]="question().hint ? list().hintId : null"
+>
+  <p class="field__label" [id]="list().promptId">{{ question().prompt }}</p>
+  @if (question().hint; as hint) {
+    <p class="field__hint" [id]="list().hintId">{{ hint }}</p>
+  }
+
+  @if (list().rows.length === 0) {
+    <p class="entities__empty">{{ list().emptyText }}</p>
+  } @else {
+    <ol class="entities__list">
+      @for (row of list().rows; track row.id) {
+        <li class="entity">
+          <fieldset class="entity__group">
+            <legend class="entity__legend">{{ row.legend }}</legend>
+
+            <div class="entity__field">
+              <label class="field__label" [attr.for]="row.nameId">{{ row.nameLabel }}</label>
+              <input
+                #nameInput
+                class="field__input"
+                type="text"
+                autocomplete="off"
+                [id]="row.nameId"
+                [attr.data-focus]="'name:' + row.id"
+                [value]="row.name"
+                (input)="editName(row.id, nameInput.value)"
+              />
+            </div>
+
+            @for (field of row.fields; track field.key) {
+              @if (field.type === 'text') {
+                <div class="entity__field">
+                  <label class="field__label" [attr.for]="field.id">{{ field.label }}</label>
+                  @if (field.hint; as hint) {
+                    <p class="field__hint" [id]="field.hintId">{{ hint }}</p>
+                  }
+                  <textarea
+                    #textInput
+                    class="field__input"
+                    rows="2"
+                    [id]="field.id"
+                    [attr.aria-describedby]="field.hint ? field.hintId : null"
+                    [value]="field.value"
+                    (input)="editField(row.id, field.key, textInput.value)"
+                  ></textarea>
+                </div>
+              } @else {
+                <fieldset class="entity__references">
+                  <legend class="field__label">{{ field.label }}</legend>
+                  @if (field.options.length === 0) {
+                    <p class="field__hint">{{ field.emptyText }}</p>
+                  }
+                  @for (option of field.options; track option.id) {
+                    <label class="entity__reference">
+                      <input
+                        class="entity__checkbox"
+                        type="checkbox"
+                        [checked]="option.checked"
+                        (change)="editField(row.id, field.key, option.toggled)"
+                      />
+                      <span>{{ option.label }}</span>
+                    </label>
+                  }
+                </fieldset>
+              }
+            }
+
+            <div class="entity__actions">
+              <button
+                type="button"
+                class="button button--small"
+                [attr.data-focus]="'up:' + row.id"
+                [attr.aria-label]="row.moveUpLabel"
+                [disabled]="!row.canMoveUp"
+                (click)="move(row.id, -1)"
+              >
+                <span aria-hidden="true">&uarr;</span> Up
+              </button>
+              <button
+                type="button"
+                class="button button--small"
+                [attr.data-focus]="'down:' + row.id"
+                [attr.aria-label]="row.moveDownLabel"
+                [disabled]="!row.canMoveDown"
+                (click)="move(row.id, 1)"
+              >
+                <span aria-hidden="true">&darr;</span> Down
+              </button>
+              <button
+                type="button"
+                class="button button--small"
+                [attr.aria-label]="row.removeLabel"
+                (click)="remove(row.id)"
+              >
+                Remove
+              </button>
+            </div>
+          </fieldset>
+        </li>
+      }
+    </ol>
+  }
+
+  <button type="button" class="button entities__add" data-focus="add" (click)="add()">{{ list().addLabel }}</button>
+</div>

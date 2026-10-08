@@ -1,3 +1,6 @@
+import { emptyEntities } from '../entity/entities';
+import { ENTITY_KINDS } from '../entity/entity.types';
+import type { Entity, EntityKind, ProjectEntities } from '../entity/entity.types';
 import { isRecord } from '../record';
 import { findStep, isProjectMode, workflowFor } from '../workflow/workflow';
 import { SCHEMA_VERSION } from './project';
@@ -14,20 +17,27 @@ export function isStoredProject(value: unknown): value is StoredProject {
   return isRecord(value) && typeof value['id'] === 'string' && typeof value['schemaVersion'] === 'number';
 }
 
+const upgrades: Readonly<Record<number, (stored: StoredProject) => StoredProject>> = {
+  1: fromSchema1,
+};
+
 /**
  * The one place a stored project becomes a `Project`. A change to the persisted shape bumps
- * `SCHEMA_VERSION` and adds a step here that lifts the older shape (ADR-0008); until then there is
- * no older shape, so anything but the current version is refused.
+ * `SCHEMA_VERSION` and adds an entry to `upgrades` that lifts the previous shape (ADR-0008). A
+ * version this build has no way to read, older or newer, is refused rather than guessed at.
  */
 export function migrateProject(stored: StoredProject): Project | undefined {
-  if (stored.schemaVersion !== SCHEMA_VERSION) {
+  const current = upgrade(stored);
+  if (!current) {
     return undefined;
   }
-  const { name, mode, answers, currentStepId, createdAt, updatedAt } = stored;
+  const { name, mode, answers, entities, currentStepId, createdAt, updatedAt } = current;
+  const parsedEntities = parseEntities(entities);
   if (
     typeof name !== 'string' ||
     !isProjectMode(mode) ||
     !isAnswers(answers) ||
+    !parsedEntities ||
     typeof currentStepId !== 'string' ||
     typeof createdAt !== 'string' ||
     typeof updatedAt !== 'string'
@@ -37,14 +47,84 @@ export function migrateProject(stored: StoredProject): Project | undefined {
   const knownStep = findStep(workflowFor(mode), currentStepId);
   return {
     schemaVersion: SCHEMA_VERSION,
-    id: stored.id,
+    id: current.id,
     name,
     mode,
     answers,
+    entities: parsedEntities,
     currentStepId: knownStep ? currentStepId : workflowFor(mode).steps[0].id,
     createdAt,
     updatedAt,
   };
+}
+
+function upgrade(stored: StoredProject): StoredProject | undefined {
+  let current = stored;
+  while (current.schemaVersion < SCHEMA_VERSION) {
+    const step = upgrades[current.schemaVersion];
+    if (!step) {
+      return undefined;
+    }
+    current = step(current);
+  }
+  return current.schemaVersion === SCHEMA_VERSION ? current : undefined;
+}
+
+/**
+ * Schema 1 kept the roles listed under Users, and one free-text "needs" answer for all of them,
+ * among the answers. Schema 2 keeps roles as actor rows with their own `needs`, so each role becomes
+ * an actor, and the old text moves onto the first actor (an unnamed one if there were no roles)
+ * instead of being left behind where no question reads it.
+ */
+function fromSchema1(stored: StoredProject): StoredProject {
+  const { answers } = stored;
+  const users = isRecord(answers) ? answers['users'] : undefined;
+  if (!isRecord(answers) || !isRecord(users)) {
+    return { ...stored, schemaVersion: 2, entities: {} };
+  }
+  const roles: unknown = users['users'];
+  const names = Array.isArray(roles)
+    ? roles.filter((role): role is string => typeof role === 'string' && role.trim() !== '').map((role) => role.trim())
+    : [];
+  const needs = typeof users['needs'] === 'string' ? users['needs'] : undefined;
+  if (needs !== undefined && needs.trim() !== '' && names.length === 0) {
+    names.push('');
+  }
+  const actors = names.map((name, index) => ({
+    id: `actor-${index + 1}`,
+    name,
+    fields: { needs: index === 0 && needs !== undefined ? needs.trim() : '' },
+  }));
+  const kept = Object.entries(users).filter(([question]) => question !== 'users' && !(question === 'needs' && needs !== undefined));
+  return { ...stored, schemaVersion: 2, answers: { ...answers, users: Object.fromEntries(kept) }, entities: { actor: actors } };
+}
+
+function parseEntities(value: unknown): ProjectEntities | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+  const parsed: Record<EntityKind, readonly Entity[]> = { ...emptyEntities() };
+  for (const kind of ENTITY_KINDS) {
+    const rows = value[kind];
+    if (rows === undefined) {
+      continue;
+    }
+    if (!Array.isArray(rows) || !rows.every(isEntity)) {
+      return undefined;
+    }
+    parsed[kind] = rows;
+  }
+  return parsed;
+}
+
+function isEntity(value: unknown): value is Entity {
+  return (
+    isRecord(value) &&
+    typeof value['id'] === 'string' &&
+    typeof value['name'] === 'string' &&
+    isRecord(value['fields']) &&
+    Object.values(value['fields']).every(isAnswerValue)
+  );
 }
 
 function isAnswers(value: unknown): value is Readonly<Record<string, StepAnswers>> {

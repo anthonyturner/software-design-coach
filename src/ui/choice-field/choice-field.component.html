@@ -7,21 +7,22 @@
     <p class="field__hint" [id]="emptyId()">{{ emptyText() }}</p>
   }
   @for (option of options(); track option.value) {
-    <label class="choice__option">
-      <input
-        class="choice__radio"
-        type="radio"
-        [attr.name]="groupId()"
-        [value]="option.value"
-        [checked]="option.checked"
-        (change)="answered.emit(option.value)"
-      />
-      <span class="choice__text">
-        <span class="choice__label">{{ option.label }}</span>
-        @if (option.detail; as detail) {
-          <span class="choice__detail">{{ detail }}</span>
-        }
-      </span>
-    </label>
+    <div class="choice__option">
+      <label class="choice__row">
+        <input
+          class="choice__radio"
+          type="radio"
+          [attr.name]="groupId()"
+          [value]="option.value"
+          [checked]="option.checked"
+          [attr.aria-describedby]="option.detailId"
+          (change)="answered.emit(option.value)"
+        />
+        <span>{{ option.label }}</span>
+      </label>
+      @if (option.detail; as detail) {
+        <span class="choice__detail" [id]="option.detailId">{{ detail }}</span>
+      }
+    </div>
   }
 </fieldset>

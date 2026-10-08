@@ -239,6 +239,10 @@ describe.each(PROJECT_MODES)('the %s workflow', (mode) => {
     });
   });
 
+  it('declares the slice on at most one step, since only the first such step is read', () => {
+    expect(steps.filter((step) => step.slice !== undefined).length).toBeLessThanOrEqual(1);
+  });
+
   it('shows the first-slice diagram only if it says where the slice is chosen and traced', () => {
     const shown = steps.some((step) => step.diagram === 'first-vertical-slice');
 
@@ -250,6 +254,22 @@ describe.each(PROJECT_MODES)('the %s workflow', (mode) => {
     if (slice) {
       expect(findQuestion(workflow, slice.stepId, slice.useCase)).toMatchObject({ kind: 'entity-choice', entity: 'use-case' });
       expect(findQuestion(workflow, slice.stepId, slice.path)?.kind).toBe('long-text');
+    }
+  });
+});
+
+describe('the definitions of the entities a workflow lists', () => {
+  it('gives every kind of entity a definition whose references point at kinds that exist', () => {
+    for (const kind of ENTITY_KINDS) {
+      const definition = entityDefinitions[kind];
+      expect(definition.nameLabel, kind).not.toBe('');
+      const keys = definition.fields.map((field) => field.key);
+      expect(new Set(keys).size, kind).toBe(keys.length);
+      for (const field of definition.fields) {
+        if (field.kind === 'references') {
+          expect(ENTITY_KINDS, `${kind}.${field.key}`).toContain(field.references);
+        }
+      }
     }
   });
 });

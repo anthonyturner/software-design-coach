@@ -21,6 +21,10 @@ export class ChoiceFieldComponent {
     () => [this.question().hint ? this.hintId() : '', this.isEmpty() ? this.emptyId() : ''].filter(Boolean).join(' ') || null,
   );
   protected readonly options = computed(() =>
-    this.question().options.map((option) => ({ ...option, checked: option.value === this.value() })),
+    this.question().options.map((option, index) => ({
+      ...option,
+      checked: option.value === this.value(),
+      detailId: option.detail ? `${this.groupId()}-detail-${index}` : null,
+    })),
   );
 }

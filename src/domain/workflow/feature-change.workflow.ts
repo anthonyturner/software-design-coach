@@ -383,8 +383,8 @@ export const featureChangeWorkflow: Workflow = {
         'Owner: Reminders. It already decides what a reply means for a reminder. Messaging should deliver the ' +
         'text, untouched.',
       challenges: [
-        'You said it is contained. List every parameter, return value and error that crosses the module\'s boundary. Does any of them carry the knowledge out?',
-        'You said it spreads. Which module could own it so the others only ask? If none fits, is a module missing?',
+        'If you said it is contained: list every parameter, return value and error that crosses the module\'s boundary. Does any of them carry the knowledge out?',
+        'If you said it spreads: which module could own it so the others only ask? If none fits, is a module missing?',
         'Must callers call two modules in a fixed order for the change to work? That is knowledge about sequence leaking to callers.',
         'Does any module now know the shape of another\'s data: a field, a status code, a file layout? Show it the answer, not the shape.',
         'Is the module you plan to edit about to change for a second, unrelated reason? Cohesion is lost one convenient edit at a time.',

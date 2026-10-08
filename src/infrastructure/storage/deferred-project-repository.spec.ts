@@ -17,8 +17,8 @@ describe('DeferredProjectRepository', () => {
     repository = new DeferredProjectRepository(load);
   });
 
-  it('loads nothing until it is used, so it costs nothing at start-up', () => {
-    expect(load).not.toHaveBeenCalled();
+  it('starts loading the moment it is made, so the repository is on its way before any write', () => {
+    expect(load).toHaveBeenCalledTimes(1);
   });
 
   it('does what the repository it stands for does, through every operation', async () => {
@@ -42,6 +42,7 @@ describe('DeferredProjectRepository', () => {
 
   it('reports a repository that cannot be loaded as unavailable storage', async () => {
     load.mockRejectedValueOnce(new Error('Failed to fetch the chunk'));
+    repository = new DeferredProjectRepository(load);
 
     const failure = await repository.list().catch((error: unknown) => error);
 
@@ -51,10 +52,11 @@ describe('DeferredProjectRepository', () => {
 
   it('tries again on the next call after a failed load, since the network may be back', async () => {
     load.mockRejectedValueOnce(new Error('offline'));
+    repository = new DeferredProjectRepository(load);
     await repository.list().catch(() => undefined);
 
     expect(await repository.list()).toEqual([]);
-    expect(load).toHaveBeenCalledTimes(2);
+    expect(load).toHaveBeenCalledTimes(3);
   });
 
   it('passes on the failures of the repository itself, untouched', async () => {
@@ -65,6 +67,7 @@ describe('DeferredProjectRepository', () => {
       save: (project) => underlying.save(project),
       remove: (id) => underlying.remove(id),
     });
+    repository = new DeferredProjectRepository(load);
 
     await expect(repository.list()).rejects.toBe(full);
   });

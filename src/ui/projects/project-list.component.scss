@@ -1,0 +1,58 @@
+.projects {
+  display: grid;
+  gap: var(--sdc-space-5);
+  max-width: 40rem;
+
+  &__title {
+    font-size: var(--sdc-font-size-2xl);
+  }
+
+  &__lede {
+    color: var(--sdc-color-text-muted);
+    font-size: var(--sdc-font-size-lg);
+  }
+
+  &__create {
+    display: grid;
+    gap: var(--sdc-space-2);
+  }
+
+  &__create-row {
+    display: flex;
+    gap: var(--sdc-space-3);
+  }
+
+  &__list {
+    display: grid;
+    gap: var(--sdc-space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__link {
+    display: grid;
+    gap: var(--sdc-space-1);
+    padding: var(--sdc-space-3) var(--sdc-space-4);
+    background: var(--sdc-color-surface);
+    border: var(--sdc-border-width) solid var(--sdc-color-border);
+    border-radius: var(--sdc-radius-md);
+    color: var(--sdc-color-text);
+    text-decoration: none;
+
+    &:hover {
+      border-color: var(--sdc-color-accent);
+    }
+  }
+
+  &__name {
+    font-weight: var(--sdc-font-weight-medium);
+  }
+
+  &__meta,
+  &__empty,
+  &__storage {
+    color: var(--sdc-color-text-muted);
+    font-size: var(--sdc-font-size-sm);
+  }
+}

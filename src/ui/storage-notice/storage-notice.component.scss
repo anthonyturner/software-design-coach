@@ -1,0 +1,8 @@
+.notice__text {
+  margin-top: var(--sdc-space-4);
+  padding: var(--sdc-space-3) var(--sdc-space-4);
+  background: var(--sdc-color-surface);
+  border: var(--sdc-border-width) solid var(--sdc-color-warning);
+  border-radius: var(--sdc-radius-sm);
+  color: var(--sdc-color-warning);
+}

@@ -1,0 +1,49 @@
+<article class="step" aria-labelledby="step-title">
+  <header class="step__header">
+    <p class="step__position">Step {{ stepNumber() }} of {{ stepCount() }}</p>
+    <h3 #heading class="step__title" id="step-title" tabindex="-1">{{ step().title }}</h3>
+  </header>
+
+  <section class="step__section" aria-labelledby="step-think">
+    <h4 class="step__label" id="step-think">Think</h4>
+    <p class="step__why">{{ step().why }}</p>
+  </section>
+
+  <section class="step__section" aria-labelledby="step-decide">
+    <h4 class="step__label" id="step-decide">Decide</h4>
+    <div class="step__fields">
+      @for (field of fields(); track field.key) {
+        <sdc-answer-field
+          [question]="field.question"
+          [value]="field.value"
+          (answered)="answered.emit({ questionId: field.question.id, value: $event })"
+        />
+      }
+    </div>
+  </section>
+
+  <section class="step__section" aria-labelledby="step-challenge">
+    <h4 class="step__label" id="step-challenge">Challenge</h4>
+    <ul class="step__challenges">
+      @for (challenge of step().challenges; track $index) {
+        <li>{{ challenge }}</li>
+      }
+    </ul>
+  </section>
+
+  <details class="step__example">
+    <summary class="step__example-toggle">Show me an example</summary>
+    <p class="step__example-text">{{ step().example }}</p>
+  </details>
+
+  <div class="step__nav">
+    @if (canGoBack()) {
+      <button type="button" class="button" (click)="goBack()">Back</button>
+    }
+    @if (canContinue()) {
+      <button type="button" class="button button--primary" (click)="goNext()">Continue</button>
+    } @else {
+      <p class="step__end">That is every step available so far. Your answers are saved as you type.</p>
+    }
+  </div>
+</article>

@@ -51,6 +51,7 @@ export type {
   EntityChoiceQuestion,
   EntityFieldsQuestion,
   EntityListQuestion,
+  PackageFileDefinition,
   ProjectMode,
   Question,
   Step,
@@ -73,3 +74,5 @@ export type {
   SummaryStep,
   SummaryValue,
 } from './summary/summary.types';
+export { buildPackage, combinePackage, packageFileName } from './package/package';
+export type { PackageFile } from './package/package.types';

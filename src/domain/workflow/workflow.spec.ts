@@ -106,6 +106,22 @@ describe.each(PROJECT_MODES)('the %s workflow', (mode) => {
     }
   });
 
+  describe('its design package', () => {
+    const files = workflow.designPackage;
+
+    it('gathers every step into exactly one file, so no answer is left out of the export', () => {
+      expect(files.flatMap((file) => file.steps)).toEqual(steps.map((step) => step.id));
+    });
+
+    it('gives each file a unique Markdown path and a title', () => {
+      const paths = files.map((file) => file.path);
+
+      expect(new Set(paths).size).toBe(paths.length);
+      expect(paths.every((path) => /^[a-z]+(-[a-z]+)*\.md$/.test(path))).toBe(true);
+      expect(files.every((file) => file.title.trim() !== '' && file.steps.length > 0)).toBe(true);
+    });
+  });
+
   it('keeps step ids unique, since progress and answers are keyed by them', () => {
     const ids = steps.map((step) => step.id);
 

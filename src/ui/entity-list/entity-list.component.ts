@@ -12,11 +12,12 @@ import {
 import { entityDefinitions, entityLabel } from '../../domain';
 import type { EntityListQuestion, FieldValue, ProjectEntities } from '../../domain';
 import type { EntityChange } from '../../app/entity-change';
+import { EntityFieldComponent } from '../entity-field/entity-field.component';
 
 @Component({
   selector: 'sdc-entity-list',
+  imports: [EntityFieldComponent],
   templateUrl: './entity-list.component.html',
-  styleUrl: './entity-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EntityListComponent {
@@ -36,60 +37,27 @@ export class EntityListComponent {
     const singular = definition.singular.charAt(0).toUpperCase() + definition.singular.slice(1);
 
     return {
+      kind,
+      idBase,
       promptId: `${idBase}-prompt`,
       hintId: `${idBase}-hint`,
       emptyText: `No ${definition.plural} yet.`,
       addLabel: `Add ${definition.singular}`,
+      fields: definition.fields.filter((field) => question.fields?.includes(field.key) ?? true),
       rows: rows.map((row, index) => {
         const label = entityLabel(row, kind);
-        const rowBase = `${idBase}-${row.id}`;
         return {
+          entity: row,
           id: row.id,
           legend: `${singular} ${index + 1}`,
           name: row.name,
           nameLabel: definition.nameLabel,
-          nameId: `${rowBase}-name`,
+          nameId: `${idBase}-${row.id}-name`,
           canMoveUp: index > 0,
           canMoveDown: index < rows.length - 1,
           moveUpLabel: `Move ${label} up`,
           moveDownLabel: `Move ${label} down`,
           removeLabel: `Remove ${label}`,
-          fields: definition.fields.map((field) => {
-            const value = row.fields[field.key];
-            const fieldId = `${rowBase}-${field.key}`;
-            if (field.kind === 'text') {
-              return {
-                type: 'text' as const,
-                key: field.key,
-                label: field.label,
-                hint: field.hint,
-                id: fieldId,
-                hintId: `${fieldId}-hint`,
-                value: typeof value === 'string' ? value : '',
-              };
-            }
-            const selected = typeof value === 'string' || value === undefined ? [] : value;
-            const candidates = this.entities()[field.references].filter(
-              (candidate) => field.references !== kind || candidate.id !== row.id,
-            );
-            return {
-              type: 'references' as const,
-              key: field.key,
-              label: field.label,
-              emptyText: `No ${entityDefinitions[field.references].plural} listed yet.`,
-              options: candidates.map((candidate) => {
-                const checked = selected.includes(candidate.id);
-                return {
-                  id: candidate.id,
-                  label: entityLabel(candidate, field.references),
-                  checked,
-                  toggled: candidates
-                    .filter((other) => (other.id === candidate.id ? !checked : selected.includes(other.id)))
-                    .map((other) => other.id),
-                };
-              }),
-            };
-          }),
         };
       }),
     };

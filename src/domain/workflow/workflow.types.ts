@@ -24,13 +24,39 @@ export interface ChoiceQuestion extends QuestionBase {
   readonly options: readonly ChoiceOption[];
 }
 
-/** The answer is the project's list of `entity` rows, edited in place rather than stored with the answers. */
+/**
+ * The answer is the project's list of `entity` rows, edited in place rather than stored with the
+ * answers. It edits `fields` of each row (all of them when omitted), and counts as answered once
+ * `minimum` rows (one when omitted) are named.
+ */
 export interface EntityListQuestion extends QuestionBase {
   readonly kind: 'entity-list';
   readonly entity: EntityKind;
+  readonly fields?: readonly string[];
+  readonly minimum?: number;
 }
 
-export type Question = TextQuestion | ChoiceQuestion | EntityListQuestion;
+/** Edits one `field` of every row already listed for `entity`; it adds and removes no rows. */
+export interface EntityFieldsQuestion extends QuestionBase {
+  readonly kind: 'entity-fields';
+  readonly entity: EntityKind;
+  readonly field: string;
+  /** When set, the user may tick this instead of filling the field in, to say that no row has anything to list. */
+  readonly noneLabel?: string;
+}
+
+/** The answer is the id of one named `entity` row, kept with the answers and dropped if the row is removed. */
+export interface EntityChoiceQuestion extends QuestionBase {
+  readonly kind: 'entity-choice';
+  readonly entity: EntityKind;
+}
+
+export type Question =
+  | TextQuestion
+  | ChoiceQuestion
+  | EntityListQuestion
+  | EntityFieldsQuestion
+  | EntityChoiceQuestion;
 
 export type AnswerKind = Question['kind'];
 

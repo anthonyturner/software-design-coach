@@ -11,6 +11,7 @@ import { answerFromText, textOfAnswer } from './answer-text';
 export class AnswerFieldComponent {
   readonly question = input.required<TextQuestion>();
   readonly value = input<AnswerValue | undefined>();
+  readonly rows = input(5);
   readonly answered = output<AnswerValue>();
 
   protected readonly fieldId = computed(() => `answer-${this.question().id}`);

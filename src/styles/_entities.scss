@@ -1,3 +1,4 @@
+// Rows of one kind of entity, shared by the list that edits them and the step that edits one field of each.
 .entities {
   display: grid;
   gap: var(--sdc-space-3);
@@ -13,6 +14,13 @@
     margin: 0;
     padding: 0;
     list-style: none;
+  }
+
+  &__none {
+    display: flex;
+    align-items: center;
+    gap: var(--sdc-space-2);
+    cursor: pointer;
   }
 
   &__add {

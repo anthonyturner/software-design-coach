@@ -1,0 +1,24 @@
+@if (text(); as question) {
+  <sdc-answer-field [question]="question" [value]="value()" [rows]="3" (answered)="edited.emit($event)" />
+} @else if (picks(); as pick) {
+  <fieldset class="entity__references" [attr.aria-describedby]="pick.describedBy">
+    <legend class="field__label">{{ pick.label }}</legend>
+    @if (pick.hint; as hint) {
+      <p class="field__hint" [id]="pick.hintId">{{ hint }}</p>
+    }
+    @if (pick.options.length === 0) {
+      <p class="field__hint" [id]="pick.emptyId">{{ pick.emptyText }}</p>
+    }
+    @for (option of pick.options; track option.id) {
+      <label class="entity__reference">
+        <input
+          class="entity__checkbox"
+          type="checkbox"
+          [checked]="option.checked"
+          (change)="edited.emit(option.toggled)"
+        />
+        <span>{{ option.label }}</span>
+      </label>
+    }
+  </fieldset>
+}

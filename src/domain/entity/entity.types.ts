@@ -1,8 +1,8 @@
-export const ENTITY_KINDS = ['actor', 'use-case', 'concept', 'external-system', 'module'] as const;
+export const ENTITY_KINDS = ['actor', 'use-case', 'concept', 'external-system', 'module', 'architecture-option'] as const;
 
 export type EntityKind = (typeof ENTITY_KINDS)[number];
 
-/** A text field holds a string; a references field holds the ids of entities of another kind. */
+/** A text field holds a string; a list field holds lines of text; a references field holds the ids of entities of another kind. */
 export type FieldValue = string | readonly string[];
 
 export interface Entity {
@@ -19,7 +19,7 @@ export interface EntityEdit {
 }
 
 export type EntityField =
-  | { readonly key: string; readonly label: string; readonly kind: 'text'; readonly hint?: string }
+  | { readonly key: string; readonly label: string; readonly kind: 'text' | 'list'; readonly hint?: string }
   | {
       readonly key: string;
       readonly label: string;

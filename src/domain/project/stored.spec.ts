@@ -33,6 +33,27 @@ function sliceOneProject(): unknown {
   };
 }
 
+/** A project exactly as the workflow of steps 1-9 wrote it: modules had a purpose and nothing else. */
+function sliceTwoProject(): unknown {
+  return {
+    schemaVersion: 2,
+    id: 'p2',
+    name: 'Reminders',
+    mode: 'new-project',
+    answers: { goals: { goals: ['fewer no-shows'] } },
+    entities: {
+      actor: [{ id: 'a1', name: 'Receptionist', fields: { needs: 'Stop phoning' } }],
+      module: [
+        { id: 'm1', name: 'Reminders', fields: { purpose: 'Decides when one is due' } },
+        { id: 'm2', name: 'Messaging', fields: { purpose: 'Sends the text' } },
+      ],
+    },
+    currentStepId: 'modules',
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
 describe('isStoredProject', () => {
   it('accepts anything that names itself and says which schema wrote it', () => {
     expect(isStoredProject({ id: 'p1', schemaVersion: 0 })).toBe(true);
@@ -91,7 +112,14 @@ describe('migrateProject', () => {
   it('treats a kind of entity missing from storage as having no rows', () => {
     const project = migrate(withField('entities', { actor: [] }));
 
-    expect(project?.entities).toEqual({ actor: [], 'use-case': [], concept: [], 'external-system': [], module: [] });
+    expect(project?.entities).toEqual({
+      actor: [],
+      'use-case': [],
+      concept: [],
+      'external-system': [],
+      module: [],
+      'architecture-option': [],
+    });
   });
 
   it('puts a project back on the first step when its step no longer exists', () => {
@@ -188,6 +216,48 @@ describe('migrateProject', () => {
 
     it('still refuses a schema 1 project that is damaged', () => {
       expect(migrate({ ...(sliceOneProject() as object), answers: 'none' })).toBeUndefined();
+    });
+  });
+
+  describe('from the steps 1-9 workflow (schema 2)', () => {
+    it('opens, as the current schema, with its answers and rows kept', () => {
+      const project = migrate(sliceTwoProject());
+
+      expect(project?.schemaVersion).toBe(SCHEMA_VERSION);
+      expect(project).toMatchObject({ id: 'p2', currentStepId: 'modules', answers: { goals: { goals: ['fewer no-shows'] } } });
+      expect(project?.entities.actor).toEqual([{ id: 'a1', name: 'Receptionist', fields: { needs: 'Stop phoning' } }]);
+    });
+
+    it('gives each module the new details, empty, and keeps what it already said', () => {
+      const project = migrate(sliceTwoProject());
+
+      expect(project?.entities.module).toEqual([
+        {
+          id: 'm1',
+          name: 'Reminders',
+          fields: { purpose: 'Decides when one is due', responsibilities: [], hides: '', interface: '', dependsOn: [] },
+        },
+        {
+          id: 'm2',
+          name: 'Messaging',
+          fields: { purpose: 'Sends the text', responsibilities: [], hides: '', interface: '', dependsOn: [] },
+        },
+      ]);
+    });
+
+    it('starts with no architecture options', () => {
+      expect(migrate(sliceTwoProject())?.entities['architecture-option']).toEqual([]);
+    });
+
+    it('opens a project with no modules at all', () => {
+      const raw = { ...(sliceTwoProject() as object), entities: {} };
+
+      expect(migrate(raw)?.entities.module).toEqual([]);
+    });
+
+    it('still refuses a schema 2 project that is damaged', () => {
+      expect(migrate({ ...(sliceTwoProject() as object), entities: 'none' })).toBeUndefined();
+      expect(migrate({ ...(sliceTwoProject() as object), entities: { module: 'none' } })).toBeUndefined();
     });
   });
 });

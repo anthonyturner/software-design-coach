@@ -1,3 +1,4 @@
+import { emptyEntities } from '../entity/entities';
 import {
   addEntity,
   answer,
@@ -9,6 +10,7 @@ import {
   stepAnswers,
   summarize,
   updateEntity,
+  NONE_ANSWER,
   SCHEMA_VERSION,
 } from './project';
 
@@ -27,7 +29,7 @@ describe('createProject', () => {
       name: 'Reminders',
       mode: 'new-project',
       answers: {},
-      entities: { actor: [], 'use-case': [], concept: [], 'external-system': [], module: [] },
+      entities: emptyEntities(),
       currentStepId: 'problem',
       createdAt: created,
       updatedAt: created,
@@ -213,5 +215,122 @@ describe('isProjectSummary', () => {
     expect(isProjectSummary(undefined)).toBe(false);
     expect(isProjectSummary({ id: 'p1', name: 'x', mode: 'new-project' })).toBe(false);
     expect(isProjectSummary({ id: 'p1', name: 'x', mode: 'other', updatedAt: created })).toBe(false);
+  });
+});
+
+describe('choosing one of the rows', () => {
+  function withTwoOptions(): ReturnType<typeof createProject> {
+    let project = newProject();
+    for (const [id, name] of [['o1', 'Layered'], ['o2', 'Event-driven']]) {
+      project = updateEntity(addEntity(project, 'architecture-option', id, later), 'architecture-option', id, { name }, later);
+    }
+    return project;
+  }
+
+  const chosen = (project: ReturnType<typeof createProject>): unknown => project.answers['decision']?.['chosen'];
+
+  it('records which option was chosen, by id', () => {
+    expect(chosen(answer(withTwoOptions(), 'decision', 'chosen', 'o2', later))).toBe('o2');
+  });
+
+  it('ignores an option that does not exist, a blank one, or a list', () => {
+    const before = withTwoOptions();
+
+    expect(answer(before, 'decision', 'chosen', 'ghost', later)).toBe(before);
+    expect(answer(before, 'decision', 'chosen', ['o1'], later)).toBe(before);
+    expect(answer(addEntity(before, 'architecture-option', 'o3', later), 'decision', 'chosen', 'o3', later).answers).toEqual({});
+  });
+
+  it('forgets the choice when the chosen option is removed', () => {
+    const decided = answer(answer(withTwoOptions(), 'decision', 'chosen', 'o2', later), 'decision', 'reasons', 'Simpler', later);
+
+    const after = removeEntity(decided, 'architecture-option', 'o2', later);
+
+    expect(chosen(after)).toBeUndefined();
+    expect(after.answers['decision']).toEqual({ reasons: 'Simpler' });
+  });
+
+  it('keeps the choice when a different option is removed', () => {
+    const decided = answer(withTwoOptions(), 'decision', 'chosen', 'o2', later);
+
+    expect(chosen(removeEntity(decided, 'architecture-option', 'o1', later))).toBe('o2');
+  });
+
+  it('keeps the choice when a row of another kind with the same id is removed', () => {
+    const decided = addEntity(answer(withTwoOptions(), 'decision', 'chosen', 'o2', later), 'actor', 'o2', later);
+
+    expect(chosen(removeEntity(decided, 'actor', 'o2', later))).toBe('o2');
+  });
+
+  it('keeps the choice across a rename, since the id is what is stored', () => {
+    const decided = answer(withTwoOptions(), 'decision', 'chosen', 'o2', later);
+
+    expect(chosen(updateEntity(decided, 'architecture-option', 'o2', { name: 'Events' }, later))).toBe('o2');
+  });
+});
+
+describe('saying that a field has nothing to list', () => {
+  function withModules(): ReturnType<typeof createProject> {
+    let project = newProject();
+    for (const [id, name] of [['m1', 'Reminders'], ['m2', 'Messaging']]) {
+      project = updateEntity(addEntity(project, 'module', id, later), 'module', id, { name }, later);
+    }
+    return project;
+  }
+
+  const said = (project: ReturnType<typeof createProject>): unknown => project.answers['dependencies']?.['dependencies'];
+
+  it('records that no module depends on another, where the question allows it', () => {
+    expect(said(answer(withModules(), 'dependencies', 'dependencies', NONE_ANSWER, later))).toBe(NONE_ANSWER);
+  });
+
+  it('can be taken back', () => {
+    const none = answer(withModules(), 'dependencies', 'dependencies', NONE_ANSWER, later);
+
+    expect(said(answer(none, 'dependencies', 'dependencies', '', later))).toBe('');
+  });
+
+  it('is refused where having nothing to list is not an answer', () => {
+    const before = withModules();
+
+    expect(answer(before, 'responsibilities', 'responsibilities', NONE_ANSWER, later)).toBe(before);
+  });
+
+  it('is refused for any other text, or a list', () => {
+    const before = withModules();
+
+    expect(answer(before, 'dependencies', 'dependencies', 'maybe', later)).toBe(before);
+    expect(answer(before, 'dependencies', 'dependencies', [NONE_ANSWER], later)).toBe(before);
+  });
+
+  it('is refused while a module does depend on another, since the two would disagree', () => {
+    const depending = updateEntity(withModules(), 'module', 'm1', { fields: { dependsOn: ['m2'] } }, later);
+
+    expect(answer(depending, 'dependencies', 'dependencies', NONE_ANSWER, later)).toBe(depending);
+  });
+
+  it('is dropped when a dependency is added afterwards, so it cannot come back by itself', () => {
+    const none = answer(withModules(), 'dependencies', 'dependencies', NONE_ANSWER, later);
+
+    const depending = updateEntity(none, 'module', 'm1', { fields: { dependsOn: ['m2'] } }, later);
+    const undone = updateEntity(depending, 'module', 'm1', { fields: { dependsOn: [] } }, later);
+
+    expect(said(depending)).toBeUndefined();
+    expect(said(undone)).toBeUndefined();
+  });
+
+  it('is kept when something else about a module changes', () => {
+    const none = answer(withModules(), 'dependencies', 'dependencies', NONE_ANSWER, later);
+
+    expect(said(updateEntity(none, 'module', 'm1', { name: 'Reminding' }, later))).toBe(NONE_ANSWER);
+    expect(said(updateEntity(none, 'module', 'm1', { fields: { hides: 'The rules' } }, later))).toBe(NONE_ANSWER);
+  });
+});
+
+describe('removing a row nothing chose', () => {
+  it('keeps the very same answers, so nothing is copied or saved needlessly', () => {
+    const project = answer(addEntity(newProject(), 'actor', 'a1', later), 'goals', 'goals', ['fewer no-shows'], later);
+
+    expect(removeEntity(project, 'actor', 'a1', later).answers).toBe(project.answers);
   });
 });

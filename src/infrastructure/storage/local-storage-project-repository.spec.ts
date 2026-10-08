@@ -94,6 +94,71 @@ describe('LocalStorageProjectRepository', () => {
       expect(isStoredProject(resaved) && resaved.schemaVersion).toBe(SCHEMA_VERSION);
     });
 
+    it('gives back module details, architecture options and a decision exactly as they were saved', async () => {
+      const at = '2026-10-08T09:01:00.000Z';
+      let saved = project('p1', 'Reminders');
+      for (const [id, name] of [['m1', 'Reminders'], ['m2', 'Messaging']]) {
+        saved = updateEntity(addEntity(saved, 'module', id, at), 'module', id, { name }, at);
+      }
+      saved = updateEntity(
+        saved,
+        'module',
+        'm1',
+        {
+          fields: {
+            responsibilities: ['Decide when one is due', 'Word it'],
+            hides: 'The timing rules',
+            interface: 'dueReminders(now)',
+            dependsOn: ['m2'],
+          },
+        },
+        at,
+      );
+      for (const [id, name] of [['o1', 'Four modules'], ['o2', 'One module']]) {
+        saved = updateEntity(addEntity(saved, 'architecture-option', id, at), 'architecture-option', id, { name }, at);
+      }
+      saved = answer(saved, 'decision', 'chosen', 'o1', at);
+
+      await repository.save(saved);
+      const stored = await repository.load('p1');
+
+      expect(stored && migrateProject(stored)).toEqual(saved);
+    });
+
+    it('still opens, lists and re-saves a project written before module details (schema 2)', async () => {
+      const slice2 = {
+        schemaVersion: 2,
+        id: 'older',
+        name: 'Saved with nine steps',
+        mode: 'new-project',
+        answers: { goals: { goals: ['fewer no-shows'] } },
+        entities: {
+          actor: [{ id: 'a1', name: 'Receptionist', fields: { needs: 'Stop phoning' } }],
+          module: [{ id: 'm1', name: 'Reminders', fields: { purpose: 'Decides when one is due' } }],
+        },
+        currentStepId: 'modules',
+        createdAt: '2026-10-07T09:00:00.000Z',
+        updatedAt: '2026-10-07T09:30:00.000Z',
+      };
+      localStorage.setItem(projectKey('older'), JSON.stringify(slice2));
+
+      const stored = await repository.load('older');
+      const opened = stored && migrateProject(stored);
+      await repository.save(opened ?? project('never'));
+
+      expect(opened?.entities.module).toEqual([
+        {
+          id: 'm1',
+          name: 'Reminders',
+          fields: { purpose: 'Decides when one is due', responsibilities: [], hides: '', interface: '', dependsOn: [] },
+        },
+      ]);
+      expect(opened?.currentStepId).toBe('modules');
+      expect(await names(repository)).toEqual(['Saved with nine steps']);
+      const resaved: unknown = JSON.parse(localStorage.getItem(projectKey('older')) ?? 'null');
+      expect(isStoredProject(resaved) && resaved.schemaVersion).toBe(SCHEMA_VERSION);
+    });
+
     it('writes the schema version into every saved project', async () => {
       await repository.save(project('p1'));
 

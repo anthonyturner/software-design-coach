@@ -34,8 +34,12 @@ cannot feed any of that. So:
 
 - Each wizard step declares its **questions with typed answer kinds**: short
   text, long text, a list of strings, a choice, or an **entity list** (rows
-  with fields, such as modules with a responsibility, hidden knowledge and
-  dependencies).
+  with fields, such as modules with responsibilities, hidden knowledge, an
+  interface sketch and dependencies). Two more kinds work over rows listed
+  earlier: **entity fields** edits one field of every listed row (with an
+  optional explicit "none"), and **entity choice** picks one row by id, such as
+  the chosen architecture option. A field is text, a list of lines, or
+  references to other rows by id.
 - Answers that describe structure (actors, use cases, domain concepts,
   external systems, modules, dependencies) land in a **design model**:
   typed collections the rest of the app can reason about.
@@ -164,9 +168,9 @@ Red → Green → Refactor. Sizes are relative (XS–XL).
 | 0 | **Scaffold.** Angular app, strict TS, Vitest, ESLint, husky/commitlint, dark theme tokens, app shell, CI workflow. Fill in real commands. | The toolchain and checks work end to end. | S |
 | 1 | **Walking skeleton.** Domain model + workflow schema + ProjectStore + LocalStorage repository. Create a New Project, answer the first three steps (Problem, Users, Goals), reload the page and resume. | The core model, persistence and wizard loop. Every later slice adds content or a projection to this. | M |
 | 2a | **New Project workflow, steps 1–9.** Problem through Modules as content: why, questions, example, challenge prompts; typed answers including entity lists; journey rail with progress and free navigation. | Progressive disclosure and entity lists work in the step content format. | M |
-| 2b | **New Project workflow, steps 10–19.** Responsibilities through Design Review as content, including module details (responsibilities, hidden knowledge, dependencies). | The content format scales to a full workflow. | M |
+| 2b | **New Project workflow, steps 10–19.** Responsibilities through Design Review as content, including module details (responsibilities, hidden knowledge, interface sketch, dependencies), architecture options (design it twice) and a decision that points at one. Adds the entity-fields and entity-choice answer kinds, the list field kind and the architecture-option entity. | The content format scales to a full workflow. | M |
 | 3 | **Live diagrams.** Mermaid renderer adapter; diagrams derived from the model: system context, use case, domain model, module, dependency, first vertical slice. | "Diagrams are projections" works; the domain layer stays DOM-free. | M |
-| 4 | **Interactive module diagram.** Click a module → drawer with responsibilities, hidden knowledge, dependencies and related notes. | Spec §6 interactivity. | S |
+| 4 | **Interactive module diagram.** Click a module → drawer with responsibilities, hidden knowledge, interface sketch, dependencies and related notes. | Spec §6 interactivity. | S |
 | 5 | **Feature / Change workflow.** The 14-step workflow as content, reusing everything from slices 1–4. | The workflow engine is general, not shaped around one mode. | M |
 | 6 | **Design notes + summary page.** Per-step notes; a print-friendly summary of the whole design. | Spec §14 notes and summary. | S |
 | 7 | **Markdown export.** The design package files from the model; download each, download all as one combined `.md`, copy to clipboard. | Spec §10 output, MVP subset. | M |

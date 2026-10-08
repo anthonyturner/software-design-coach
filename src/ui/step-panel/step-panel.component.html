@@ -23,10 +23,19 @@
             [entities]="entities()"
             (changed)="entityChanged.emit({ entity: field.question.entity, change: $event })"
           />
+        } @else if (field.type === 'entity-fields') {
+          <sdc-entity-fields
+            [question]="field.question"
+            [entities]="entities()"
+            [answer]="field.value"
+            (changed)="entityChanged.emit({ entity: field.question.entity, change: $event })"
+            (answered)="answered.emit({ questionId: field.question.id, value: $event })"
+          />
         } @else if (field.type === 'choice') {
           <sdc-choice-field
             [question]="field.question"
             [value]="field.value"
+            [emptyText]="field.emptyText"
             (answered)="answered.emit({ questionId: field.question.id, value: $event })"
           />
         } @else {
@@ -63,7 +72,7 @@
       @if (canContinue()) {
         <button type="button" class="button button--primary" (click)="next.emit()">Continue</button>
       } @else {
-        <p class="step__end">That is every step available so far. Your answers are saved as you type.</p>
+        <p class="step__end">That is the last step. Your answers are saved as you type.</p>
       }
     </div>
   </section>

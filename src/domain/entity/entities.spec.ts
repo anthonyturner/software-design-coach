@@ -1,7 +1,10 @@
 import {
   emptyEntities,
   entityLabel,
+  entityOptions,
+  hasFieldContent,
   isNamed,
+  referenceCandidates,
   withEditedEntity,
   withEntity,
   withMovedEntity,
@@ -29,7 +32,14 @@ const ids = (entities: ProjectEntities, kind: EntityKind): string[] => entities[
 
 describe('emptyEntities', () => {
   it('has a list for every kind', () => {
-    expect(emptyEntities()).toEqual({ actor: [], 'use-case': [], concept: [], 'external-system': [], module: [] });
+    expect(emptyEntities()).toEqual({
+      actor: [],
+      'use-case': [],
+      concept: [],
+      'external-system': [],
+      module: [],
+      'architecture-option': [],
+    });
   });
 });
 
@@ -249,5 +259,121 @@ describe('naming', () => {
 
     expect(entityLabel(unnamed, 'use-case')).toBe('Unnamed use case');
     expect(entityLabel(named, 'actor')).toBe('Patient');
+  });
+});
+
+const moduleRow =
+  (id: string, name: string, fields: Readonly<Record<string, string | readonly string[]>> = {}): Step =>
+  (entities) =>
+    withEditedEntity(withEntity(entities, 'module', id), 'module', id, { name, fields });
+
+describe('what a module holds', () => {
+  it('starts with every detail empty', () => {
+    const [row] = withEntity(emptyEntities(), 'module', 'm1').module;
+
+    expect(row.fields).toEqual({ purpose: '', responsibilities: [], hides: '', interface: '', dependsOn: [] });
+  });
+
+  it('keeps responsibilities as a list, in the order given and as typed', () => {
+    const entities = build(moduleRow('m1', 'Reminders', { responsibilities: ['Decide when one is due', 'Word it', 'Word it'] }));
+
+    expect(entities.module[0].fields['responsibilities']).toEqual(['Decide when one is due', 'Word it', 'Word it']);
+  });
+
+  it('refuses text for a list and a list for text', () => {
+    const before = build(moduleRow('m1', 'Reminders'));
+
+    expect(withEditedEntity(before, 'module', 'm1', { fields: { responsibilities: 'one thing' } })).toBe(before);
+    expect(withEditedEntity(before, 'module', 'm1', { fields: { hides: ['a', 'b'] } })).toBe(before);
+  });
+
+  it('reports no change when the list already says that', () => {
+    const before = build(moduleRow('m1', 'Reminders', { responsibilities: ['Decide when one is due'] }));
+
+    expect(withEditedEntity(before, 'module', 'm1', { fields: { responsibilities: ['Decide when one is due'] } })).toBe(before);
+  });
+});
+
+describe('what a module depends on', () => {
+  const three = build(moduleRow('m1', 'Reminders'), moduleRow('m2', 'Messaging'), moduleRow('m3', 'Scheduling'));
+  const withDependencies = (ids: readonly string[]): ProjectEntities =>
+    withEditedEntity(three, 'module', 'm1', { fields: { dependsOn: ids } });
+
+  it('names other modules by id, once each, in the order given', () => {
+    expect(withDependencies(['m3', 'm2', 'm3']).module[0].fields['dependsOn']).toEqual(['m3', 'm2']);
+  });
+
+  it('is never the module itself, which would only draw a loop', () => {
+    expect(withDependencies(['m1', 'm2']).module[0].fields['dependsOn']).toEqual(['m2']);
+  });
+
+  it('cannot name a module that does not exist', () => {
+    expect(withDependencies(['ghost']).module[0].fields['dependsOn']).toEqual([]);
+  });
+
+  it('follows the module through a rename', () => {
+    const renamed = withEditedEntity(withDependencies(['m2']), 'module', 'm2', { name: 'Texting' });
+    const [target] = renamed.module[0].fields['dependsOn'];
+
+    expect(renamed.module.find((found) => found.id === target)?.name).toBe('Texting');
+  });
+
+  it('is cleaned up when the module it names is removed, leaving the other dependencies', () => {
+    const after = withoutEntity(withDependencies(['m2', 'm3']), 'module', 'm2');
+
+    expect(after.module.map((found) => found.fields['dependsOn'])).toEqual([['m3'], []]);
+  });
+});
+
+describe('architecture options', () => {
+  it('start with an approach, strengths and costs to fill in', () => {
+    const [row] = withEntity(emptyEntities(), 'architecture-option', 'o1')['architecture-option'];
+
+    expect(row.fields).toEqual({ approach: '', strengths: '', costs: '' });
+  });
+});
+
+describe('entityOptions', () => {
+  it('offers the named rows of a kind, in order, as value and label', () => {
+    const entities = build(actor('a1', 'Receptionist'), actor('a2', '  '), actor('a3', 'Patient'));
+
+    expect(entityOptions(entities, 'actor')).toEqual([
+      { value: 'a1', label: 'Receptionist' },
+      { value: 'a3', label: 'Patient' },
+    ]);
+  });
+
+  it('offers nothing when no row is named', () => {
+    expect(entityOptions(emptyEntities(), 'module')).toEqual([]);
+  });
+});
+
+describe('referenceCandidates', () => {
+  const modules = build(moduleRow('m1', 'Reminders'), moduleRow('m2', 'Messaging'), actor('a1', 'Patient'));
+
+  it('offers every row of the other kind', () => {
+    expect(referenceCandidates(modules, 'use-case', 'u1', 'actor').map((found) => found.id)).toEqual(['a1']);
+  });
+
+  it('offers every other row of the same kind, never the row itself', () => {
+    expect(referenceCandidates(modules, 'module', 'm1', 'module').map((found) => found.id)).toEqual(['m2']);
+  });
+});
+
+describe('hasFieldContent', () => {
+  it('is true once a named row has something written in the field', () => {
+    const entities = build(moduleRow('m1', 'Reminders'), moduleRow('m2', 'Messaging'));
+    expect(hasFieldContent(entities, 'module', 'dependsOn')).toBe(false);
+
+    const written = withEditedEntity(entities, 'module', 'm1', { fields: { dependsOn: ['m2'] } });
+    expect(hasFieldContent(written, 'module', 'dependsOn')).toBe(true);
+  });
+
+  it('ignores blank lines and rows with no name', () => {
+    const blank = build(moduleRow('m1', 'Reminders', { responsibilities: ['  '] }));
+    const unnamed = build(moduleRow('m2', '', { responsibilities: ['Something'] }));
+
+    expect(hasFieldContent(blank, 'module', 'responsibilities')).toBe(false);
+    expect(hasFieldContent(unnamed, 'module', 'responsibilities')).toBe(false);
   });
 });

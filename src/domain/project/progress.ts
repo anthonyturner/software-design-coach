@@ -1,7 +1,7 @@
-import { isNamed } from '../entity/entities';
+import { entityOptions, hasContent, hasFieldContent, isNamed } from '../entity/entities';
 import { workflowFor } from '../workflow/workflow';
 import type { Question, Step } from '../workflow/workflow.types';
-import { stepAnswers } from './project';
+import { NONE_ANSWER, stepAnswers } from './project';
 import type { Project } from './project.types';
 
 export type StepState = 'done' | 'current' | 'in-progress' | 'not-started';
@@ -43,15 +43,21 @@ function stateOf(project: Project, step: Step): StepState {
 }
 
 function isAnswered(project: Project, step: Step, question: Question): boolean {
-  if (question.kind === 'entity-list') {
-    return project.entities[question.entity].some(isNamed);
+  switch (question.kind) {
+    case 'entity-list':
+      return project.entities[question.entity].filter(isNamed).length >= (question.minimum ?? 1);
+    case 'entity-fields':
+      return (
+        hasFieldContent(project.entities, question.entity, question.field) ||
+        (question.noneLabel !== undefined && stepAnswers(project, step.id)[question.id] === NONE_ANSWER)
+      );
+    case 'entity-choice':
+      return entityOptions(project.entities, question.entity).some(
+        (option) => option.value === stepAnswers(project, step.id)[question.id],
+      );
+    case 'choice':
+      return question.options.some((option) => option.value === stepAnswers(project, step.id)[question.id]);
+    default:
+      return hasContent(stepAnswers(project, step.id)[question.id]);
   }
-  const value = stepAnswers(project, step.id)[question.id];
-  if (value === undefined) {
-    return false;
-  }
-  if (question.kind === 'choice') {
-    return question.options.some((option) => option.value === value);
-  }
-  return typeof value === 'string' ? value.trim() !== '' : value.some((item) => item.trim() !== '');
 }

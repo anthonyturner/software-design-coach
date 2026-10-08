@@ -77,6 +77,35 @@ describe('MermaidDiagramRenderer', () => {
     expect(host.querySelector('#old')).toBeNull();
   });
 
+  it('keeps only the newest drawing for a host, even when an older one finishes late', async () => {
+    let finishOlder: (drawing: { svg: string }) => void = () => undefined;
+    mermaid.render.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishOlder = resolve;
+        }),
+    );
+    const older = renderer.render('flowchart LR\n  a --> b', host);
+    await vi.waitFor(() => expect(mermaid.render).toHaveBeenCalledTimes(1));
+
+    await renderer.render('flowchart LR\n  c --> d', host);
+    finishOlder({ svg: '<svg id="older"></svg>' });
+    await older;
+
+    expect(host.querySelector('#older')).toBeNull();
+    expect(host.querySelector('#sdc-diagram-2')).not.toBeNull();
+  });
+
+  it('draws into two hosts independently', async () => {
+    const other = document.createElement('div');
+
+    await renderer.render('flowchart LR\n  a --> b', host);
+    await renderer.render('flowchart LR\n  c --> d', other);
+
+    expect(host.querySelector('svg')).not.toBeNull();
+    expect(other.querySelector('svg')).not.toBeNull();
+  });
+
   it('rejects, and leaves the host as it was, when Mermaid cannot draw the source', async () => {
     host.innerHTML = '<svg id="old"></svg>';
     mermaid.render.mockRejectedValueOnce(new Error('Parse error on line 2'));

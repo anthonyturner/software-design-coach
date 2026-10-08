@@ -26,7 +26,7 @@ export class DiagramPanelComponent {
 
   private readonly renderer = inject(DIAGRAM_RENDERER);
   private readonly canvas = viewChild.required<ElementRef<HTMLElement>>('canvas');
-  private drawnKind: DiagramKind | undefined;
+  private settledKind: DiagramKind | undefined;
   private latestRequest = 0;
 
   constructor() {
@@ -45,7 +45,7 @@ export class DiagramPanelComponent {
       this.show('empty');
       return undefined;
     }
-    const redrawing = this.drawnKind === kind;
+    const redrawing = this.settledKind === kind;
     if (!redrawing) {
       this.show('loading');
     }
@@ -61,14 +61,17 @@ export class DiagramPanelComponent {
     } catch (error: unknown) {
       if (request === this.latestRequest) {
         this.problem.set(error instanceof Error ? error.message : '');
-        this.show('error');
+        this.show('error', kind);
       }
     }
   }
 
-  /** `drawn` is the diagram now on the canvas; only a drawing that finished leaves one there. */
-  private show(state: DrawState, drawn?: DiagramKind): void {
-    this.drawnKind = drawn;
+  /**
+   * `settled` is the diagram the panel has an outcome for, drawn or failed: a change to the same one
+   * waits out the redraw pause and keeps showing that outcome, instead of flashing the loading note.
+   */
+  private show(state: DrawState, settled?: DiagramKind): void {
+    this.settledKind = settled;
     this.state.set(state);
   }
 }

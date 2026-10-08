@@ -196,21 +196,42 @@ describe('DiagramPanelComponent', () => {
       expect(page().querySelector('details pre')?.textContent).toBe('flowchart LR\n  broken');
     });
 
-    it('tries again when the source changes', async () => {
+    it('tries again when the source changes, after the same pause as any redraw', async () => {
+      vi.useFakeTimers();
+
       show('use-case', 'flowchart LR\n  fixed');
-      await settle();
+      await vi.advanceTimersByTimeAsync(REDRAW_DELAY_MS - 1);
+
+      expect(renderer.drawings).toHaveLength(1);
+
+      await vi.advanceTimersByTimeAsync(1);
       renderer.drawings[1].finish();
-      await settle();
+      await vi.advanceTimersByTimeAsync(0);
+      fixture.detectChanges();
 
       expect(page().querySelector('[role="alert"]')).toBeNull();
       expect(canvas().hidden).toBe(false);
     });
 
+    it('keeps the error, and does not flash the loading note, while the next keystrokes settle', async () => {
+      vi.useFakeTimers();
+
+      show('use-case', 'flowchart LR\n  fixed');
+      await vi.advanceTimersByTimeAsync(REDRAW_DELAY_MS - 1);
+      fixture.detectChanges();
+
+      expect(text('[role="alert"]')).toContain('could not be drawn');
+      expect(page().textContent).not.toContain('Drawing the diagram');
+    });
+
     it('explains a failure that carries no message', async () => {
+      vi.useFakeTimers();
+
       show('use-case', 'flowchart LR\n  other');
-      await settle();
+      await vi.advanceTimersByTimeAsync(REDRAW_DELAY_MS);
       renderer.drawings[1].fail('not even an error');
-      await settle();
+      await vi.advanceTimersByTimeAsync(0);
+      fixture.detectChanges();
 
       expect(text('[role="alert"]')).toContain('could not be drawn');
     });

@@ -64,6 +64,32 @@ module.exports = defineConfig([
     },
   },
   {
+    // ADR-0007: only the Mermaid adapter loads the library. A type import is erased at build time, so it is allowed.
+    files: ['src/**/*.ts'],
+    ignores: ['src/infrastructure/mermaid/**'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              regex: '^mermaid(/.*)?$',
+              allowTypeImports: true,
+              message: 'Only the Mermaid adapter in src/infrastructure/mermaid imports the library (ADR-0007).',
+            },
+          ],
+        },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "ImportExpression[source.value='mermaid']",
+          message: 'Only the Mermaid adapter in src/infrastructure/mermaid loads the library (ADR-0007).',
+        },
+      ],
+    },
+  },
+  {
     files: ['src/domain/**/*.ts'],
     rules: {
       'no-restricted-imports': ['error', { patterns: domainForbiddenImports }],

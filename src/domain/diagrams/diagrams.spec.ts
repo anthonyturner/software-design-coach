@@ -303,7 +303,7 @@ describe('diagramFor', () => {
       expect(lines(diagramFor(project, 'system-context'))).toContain('system <-->|"Texts #124; calls"| n_e1');
     });
 
-    it('keeps a row id usable as a node id however it is written, so a click can be mapped back to the row', () => {
+    it('turns characters a node id cannot hold into underscores, and prefixes the id so it is never a keyword', () => {
       const project = withRow(newProject(), 'actor', 'end of "a" line', 'Receptionist');
 
       expect(lines(diagramFor(project, 'system-context'))).toContain('n_end_of__a__line["Receptionist"]');

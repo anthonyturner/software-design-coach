@@ -1,0 +1,25 @@
+{
+  "version": "0.6.0",
+  "project": {
+    "name": "software-design-coach",
+    "summary": "An interactive software-design mentor that guides a developer through planning projects and features before implementation, teaching the reasoning behind each design decision."
+  },
+  "commands": {
+    "install": "npm ci",
+    "build": "npm run build",
+    "test": "npm test",
+    "lint": "npm run lint"
+  },
+  "repo": {
+    "defaultBranch": "main"
+  },
+  "autonomy": "merge",
+  "tools": [
+    "codex",
+    "copilot"
+  ],
+  "packs": [
+    "node-ts",
+    "angular"
+  ]
+}

@@ -46,6 +46,7 @@ export const newProjectWorkflow: Workflow = {
     {
       id: 'users',
       title: 'Users',
+      diagram: 'system-context',
       think: 'Who does this touch? Think roles with different needs, not "the user".',
       why:
         'Robert C. Martin puts it this way: a module should have one reason to change, and the reasons come ' +
@@ -200,6 +201,7 @@ export const newProjectWorkflow: Workflow = {
     {
       id: 'use-cases',
       title: 'Use Cases',
+      diagram: 'use-case',
       think: 'What do your actors actually do with the system, one concrete interaction at a time?',
       why:
         'Requirements say what the system does; use cases say who does what with it, and to what end. Each ' +
@@ -239,6 +241,7 @@ export const newProjectWorkflow: Workflow = {
     {
       id: 'domain-concepts',
       title: 'Domain Concepts',
+      diagram: 'domain-model',
       think: 'What is this problem about? Name the things, in the words your users use.',
       why:
         'The nouns of the problem become the vocabulary of the design. Precise names reduce what a reader has ' +
@@ -278,6 +281,7 @@ export const newProjectWorkflow: Workflow = {
     {
       id: 'system-boundary',
       title: 'System Boundary',
+      diagram: 'system-context',
       think: 'Where does your system end and everything you merely depend on begin?',
       why:
         'The boundary separates what you build and own from what you only use. Everything across it is a ' +
@@ -330,6 +334,7 @@ export const newProjectWorkflow: Workflow = {
     {
       id: 'modules',
       title: 'Modules',
+      diagram: 'module',
       think: 'How would you split this so each part owns one important decision?',
       why:
         'Modules are where complexity is managed. Ousterhout argues for deep modules: a simple interface ' +
@@ -372,6 +377,7 @@ export const newProjectWorkflow: Workflow = {
     {
       id: 'responsibilities',
       title: 'Responsibilities',
+      diagram: 'module',
       think: 'For each module, which jobs does it do so that nobody else has to?',
       why:
         'Robert C. Martin\'s test for a module is that it has one reason to change, and a list of ' +
@@ -414,6 +420,7 @@ export const newProjectWorkflow: Workflow = {
     {
       id: 'information-hiding',
       title: 'Information Hiding',
+      diagram: 'module',
       think: 'What does each module know that nothing else should have to know?',
       why:
         'Ousterhout calls information hiding the most important technique for making modules deep. Each module ' +
@@ -457,6 +464,7 @@ export const newProjectWorkflow: Workflow = {
     {
       id: 'interfaces',
       title: 'Interfaces',
+      diagram: 'module',
       think: 'How small can you make what each module shows to the rest of the system?',
       why:
         'A deep module, in Ousterhout\'s sense, offers a simple interface over a lot of hidden work, and the ' +
@@ -499,6 +507,7 @@ export const newProjectWorkflow: Workflow = {
     {
       id: 'dependencies',
       title: 'Dependencies',
+      diagram: 'dependency',
       think: 'Which modules need which, and do the arrows point toward what is stable?',
       why:
         'Ousterhout names dependencies as one of the two main causes of complexity: a dependency is a place ' +
@@ -542,6 +551,7 @@ export const newProjectWorkflow: Workflow = {
     {
       id: 'architecture-options',
       title: 'Architecture Options',
+      diagram: 'dependency',
       think: 'Your first design is rarely your best. What is a genuinely different way to build this?',
       why:
         'Ousterhout\'s advice is to design it twice: sketch two quite different designs before choosing, even ' +
@@ -586,6 +596,7 @@ export const newProjectWorkflow: Workflow = {
     {
       id: 'decision',
       title: 'Decision',
+      diagram: 'dependency',
       think: 'Choose one on purpose, and write down what you are giving up.',
       why:
         'A decision with its reasons written down can be revisited when the facts change; a decision that just ' +
@@ -638,6 +649,7 @@ export const newProjectWorkflow: Workflow = {
     {
       id: 'first-vertical-slice',
       title: 'First Vertical Slice',
+      diagram: 'first-vertical-slice',
       think: 'What is the thinnest piece you can build end to end that proves the design?',
       why:
         'A vertical slice cuts through every module a behaviour needs, instead of finishing one layer at a time, ' +
@@ -690,6 +702,7 @@ export const newProjectWorkflow: Workflow = {
     {
       id: 'tests',
       title: 'Tests',
+      diagram: 'first-vertical-slice',
       think: 'How will you know the slice works, and keep knowing as the design changes?',
       why:
         'Martin Fowler describes test-driven development as a loop: write a failing test for the next small ' +
@@ -735,6 +748,7 @@ export const newProjectWorkflow: Workflow = {
     {
       id: 'implementation-plan',
       title: 'Implementation Plan',
+      diagram: 'first-vertical-slice',
       think: 'In what order will you build it, in steps small enough to stay safe?',
       why:
         'Agile design means designing enough to start, then building a small slice and learning from it, so a ' +
@@ -782,6 +796,7 @@ export const newProjectWorkflow: Workflow = {
     {
       id: 'design-review',
       title: 'Design Review',
+      diagram: 'dependency',
       think: 'Before you build, look at the whole design with a sceptic\'s eye.',
       why:
         'This is the last chance to find the weakest place in the design while it costs a conversation instead ' +

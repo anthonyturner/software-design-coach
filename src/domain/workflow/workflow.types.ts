@@ -1,3 +1,4 @@
+import type { DiagramKind } from '../diagrams/diagram.types';
 import type { EntityKind } from '../entity/entity.types';
 
 export type ProjectMode = 'new-project';
@@ -69,6 +70,8 @@ export interface Step {
   readonly questions: readonly Question[];
   readonly example: string;
   readonly challenges: readonly string[];
+  /** The diagram drawn beside the step, from the model as it stands; a step that shows none leaves this out. */
+  readonly diagram?: DiagramKind;
 }
 
 export interface Workflow {

@@ -1,7 +1,12 @@
-<div class="entities" role="group" [attr.aria-labelledby]="list().promptId">
+<div
+  class="entities"
+  role="group"
+  [attr.aria-labelledby]="list().promptId"
+  [attr.aria-describedby]="question().hint ? list().hintId : null"
+>
   <p class="field__label" [id]="list().promptId">{{ question().prompt }}</p>
   @if (question().hint; as hint) {
-    <p class="field__hint">{{ hint }}</p>
+    <p class="field__hint" [id]="list().hintId">{{ hint }}</p>
   }
 
   @if (list().rows.length === 0) {

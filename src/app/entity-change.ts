@@ -1,4 +1,4 @@
-import type { EntityEdit } from '../../domain';
+import type { EntityEdit } from '../domain';
 
 /** What the user did to a list of rows. The list reports it; whoever owns the project applies it. */
 export type EntityChange =

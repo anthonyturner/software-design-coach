@@ -33,12 +33,12 @@ describe('JourneyRailComponent', () => {
     ]);
   });
 
-  it('tells assistive technology each step state and marks only the current step', () => {
+  it('tells assistive technology each step state, and marks the current step once, by aria-current alone', () => {
     const { page } = render();
 
-    expect(buttons(page).map((button) => button.querySelector('.rail__state')?.textContent)).toEqual([
+    expect(buttons(page).map((button) => button.querySelector('.rail__state')?.textContent ?? null)).toEqual([
       ', done',
-      ', current step',
+      null,
       ', in progress',
       ', not started',
     ]);

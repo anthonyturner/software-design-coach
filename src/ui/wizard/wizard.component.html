@@ -15,11 +15,11 @@
           [entities]="v.entities"
           [stepNumber]="v.stepNumber"
           [stepCount]="v.stepCount"
-          [openCount]="v.openCount"
+          [openCount]="store.openQuestionCount()"
           [canGoBack]="v.previousId !== undefined"
           [canContinue]="v.nextId !== undefined"
           (answered)="answer($event)"
-          (entityChanged)="changeEntities($event)"
+          (entityChanged)="store.changeEntities($event.entity, $event.change)"
           (back)="goTo(v.previousId)"
           (next)="goTo(v.nextId)"
         />

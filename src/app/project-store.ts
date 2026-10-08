@@ -9,13 +9,13 @@ import {
   journeyOf,
   migrateProject,
   moveEntity as shiftEntity,
+  openQuestions,
   removeEntity as dropEntity,
   updateEntity as editEntity,
   workflowFor,
 } from '../domain';
 import type {
   AnswerValue,
-  EntityEdit,
   EntityKind,
   JourneyStop,
   Project,
@@ -24,6 +24,7 @@ import type {
   Step,
   Workflow,
 } from '../domain';
+import type { EntityChange } from './entity-change';
 import { PROJECT_CLOCK, PROJECT_ID_GENERATOR } from './project-environment';
 import { PROJECT_REPOSITORY, ProjectStorageError } from './project-repository';
 import type { StorageProblem } from './project-repository';
@@ -71,6 +72,12 @@ export class ProjectStore {
   readonly journey = computed<readonly JourneyStop[]>(() => {
     const project = this.openProject();
     return project ? journeyOf(project) : [];
+  });
+
+  readonly openQuestionCount = computed(() => {
+    const project = this.openProject();
+    const step = this.currentStep();
+    return project && step ? openQuestions(project, step).length : 0;
   });
 
   constructor() {
@@ -139,22 +146,24 @@ export class ProjectStore {
     this.change((project, now) => recordAnswer(project, stepId, questionId, value, now));
   }
 
-  /** Appends an empty row; the store makes up its id. */
-  addEntity(kind: EntityKind): void {
-    const id = this.newId();
-    this.change((project, now) => appendEntity(project, kind, id, now));
-  }
-
-  updateEntity(kind: EntityKind, id: string, edit: EntityEdit): void {
-    this.change((project, now) => editEntity(project, kind, id, edit, now));
-  }
-
-  moveEntity(kind: EntityKind, id: string, offset: number): void {
-    this.change((project, now) => shiftEntity(project, kind, id, offset, now));
-  }
-
-  removeEntity(kind: EntityKind, id: string): void {
-    this.change((project, now) => dropEntity(project, kind, id, now));
+  /** Applies one edit to a list of rows; an added row gets an id the store makes up. */
+  changeEntities(kind: EntityKind, change: EntityChange): void {
+    switch (change.type) {
+      case 'add': {
+        const id = this.newId();
+        this.change((project, now) => appendEntity(project, kind, id, now));
+        break;
+      }
+      case 'edit':
+        this.change((project, now) => editEntity(project, kind, change.id, change.edit, now));
+        break;
+      case 'move':
+        this.change((project, now) => shiftEntity(project, kind, change.id, change.offset, now));
+        break;
+      case 'remove':
+        this.change((project, now) => dropEntity(project, kind, change.id, now));
+        break;
+    }
   }
 
   goTo(stepId: string): void {

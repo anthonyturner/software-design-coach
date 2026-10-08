@@ -10,7 +10,7 @@ const MARKERS: Readonly<Record<StepState, string>> = {
 
 const STATE_NAMES: Readonly<Record<StepState, string>> = {
   done: 'done',
-  current: 'current step',
+  current: '',
   'in-progress': 'in progress',
   'not-started': 'not started',
 };

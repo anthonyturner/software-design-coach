@@ -171,6 +171,25 @@ describe('withoutEntity', () => {
     expect(withoutEntity(entities, 'concept', 'c1').concept[0].fields['related']).toEqual([]);
   });
 
+  it('leaves the lists of kinds that cannot refer to the removed kind as they were', () => {
+    const entities = build(actor('a1', 'Receptionist'), useCase('u1', 'Confirm', ['a1']));
+    const before = entities;
+
+    const after = withoutEntity(entities, 'actor', 'a1');
+
+    expect(after.actor).not.toBe(before.actor);
+    expect(after['use-case']).not.toBe(before['use-case']);
+    expect(after.module).toBe(before.module);
+    expect(after['external-system']).toBe(before['external-system']);
+    expect(after.concept).toBe(before.concept);
+  });
+
+  it('keeps the list of a kind that refers to the removed kind but names none of it', () => {
+    const entities = build(actor('a1', 'Receptionist'), useCase('u1', 'Confirm', []));
+
+    expect(withoutEntity(entities, 'actor', 'a1')['use-case']).toBe(entities['use-case']);
+  });
+
   it('keeps references to a different kind that happens to share an id', () => {
     const entities = build(
       actor('x', 'Patient'),
@@ -180,6 +199,24 @@ describe('withoutEntity', () => {
     );
 
     expect(withoutEntity(entities, 'actor', 'x').concept[1].fields['related']).toEqual(['x']);
+  });
+});
+
+describe('a concept relating to itself', () => {
+  it('is refused, since it would only draw a loop', () => {
+    const entities = build(
+      (e) => withEntity(e, 'concept', 'c1'),
+      (e) => withEntity(e, 'concept', 'c2'),
+      (e) => withEditedEntity(e, 'concept', 'c1', { fields: { related: ['c1', 'c2'] } }),
+    );
+
+    expect(entities.concept[0].fields['related']).toEqual(['c2']);
+  });
+
+  it('reports no change when the only thing asked for is a self reference', () => {
+    const before = build((e) => withEntity(e, 'concept', 'c1'));
+
+    expect(withEditedEntity(before, 'concept', 'c1', { fields: { related: ['c1'] } })).toBe(before);
   });
 });
 

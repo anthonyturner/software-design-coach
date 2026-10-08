@@ -11,7 +11,7 @@ import {
 } from '@angular/core';
 import { entityDefinitions, entityLabel } from '../../domain';
 import type { EntityListQuestion, FieldValue, ProjectEntities } from '../../domain';
-import type { EntityChange } from './entity-change';
+import type { EntityChange } from '../../app/entity-change';
 
 @Component({
   selector: 'sdc-entity-list',
@@ -69,7 +69,9 @@ export class EntityListComponent {
               };
             }
             const selected = typeof value === 'string' || value === undefined ? [] : value;
-            const candidates = this.entities()[field.references];
+            const candidates = this.entities()[field.references].filter(
+              (candidate) => field.references !== kind || candidate.id !== row.id,
+            );
             return {
               type: 'references' as const,
               key: field.key,

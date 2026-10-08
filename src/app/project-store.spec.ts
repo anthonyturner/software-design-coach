@@ -121,11 +121,11 @@ describe('ProjectStore', () => {
     async function withActors(): Promise<{ store: ProjectStore; id: string }> {
       const store = configure();
       const id = await store.create('Reminders', 'new-project');
-      store.addEntity('actor');
-      store.addEntity('actor');
+      store.changeEntities('actor', { type: 'add' });
+      store.changeEntities('actor', { type: 'add' });
       const [first, second] = (store.project()?.entities.actor ?? []).map((actor) => actor.id);
-      store.updateEntity('actor', first, { name: 'Receptionist' });
-      store.updateEntity('actor', second, { name: 'Patient' });
+      store.changeEntities('actor', { type: 'edit', id: first, edit: { name: 'Receptionist' } });
+      store.changeEntities('actor', { type: 'edit', id: second, edit: { name: 'Patient' } });
       return { store, id };
     }
 
@@ -150,14 +150,14 @@ describe('ProjectStore', () => {
     it('reorders and removes rows, and cleans references to a removed one', async () => {
       const { store } = await withActors();
       const [first, second] = (store.project()?.entities.actor ?? []).map((actor) => actor.id);
-      store.addEntity('use-case');
+      store.changeEntities('use-case', { type: 'add' });
       const useCase = store.project()?.entities['use-case'][0].id ?? '';
-      store.updateEntity('use-case', useCase, { fields: { actors: [first, second] } });
+      store.changeEntities('use-case', { type: 'edit', id: useCase, edit: { fields: { actors: [first, second] } } });
 
-      store.moveEntity('actor', second, -1);
+      store.changeEntities('actor', { type: 'move', id: second, offset: -1 });
       expect(names(store)).toEqual(['Patient', 'Receptionist']);
 
-      store.removeEntity('actor', first);
+      store.changeEntities('actor', { type: 'remove', id: first });
       expect(names(store)).toEqual(['Patient']);
       expect(store.project()?.entities['use-case'][0].fields['actors']).toEqual([second]);
     });
@@ -168,11 +168,27 @@ describe('ProjectStore', () => {
       const save = vi.spyOn(repository, 'save');
       const [first] = (store.project()?.entities.actor ?? []).map((actor) => actor.id);
 
-      store.updateEntity('actor', first, { name: 'Receptionist' });
-      store.moveEntity('actor', first, -1);
+      store.changeEntities('actor', { type: 'edit', id: first, edit: { name: 'Receptionist' } });
+      store.changeEntities('actor', { type: 'move', id: first, offset: -1 });
       await vi.advanceTimersByTimeAsync(AUTOSAVE_DELAY_MS);
 
       expect(save).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('the open question count', () => {
+    it('is zero with no project, then counts the required questions the current step still lacks', async () => {
+      const store = configure();
+      expect(store.openQuestionCount()).toBe(0);
+
+      await store.create('Reminders', 'new-project');
+      expect(store.openQuestionCount()).toBe(3);
+
+      store.answer('problem', 'problem', 'No-shows');
+      expect(store.openQuestionCount()).toBe(2);
+
+      store.goTo('users');
+      expect(store.openQuestionCount()).toBe(1);
     });
   });
 
@@ -209,8 +225,8 @@ describe('ProjectStore', () => {
       const id = await before.create('Reminders', 'new-project');
       before.answer('problem', 'problem', 'No-shows cost chairs');
       before.answer('goals', 'goals', ['fewer no-shows', 'no reminder calls']);
-      before.addEntity('actor');
-      before.updateEntity('actor', 'p2', { name: 'Receptionist' });
+      before.changeEntities('actor', { type: 'add' });
+      before.changeEntities('actor', { type: 'edit', id: 'p2', edit: { name: 'Receptionist' } });
       before.goTo('users');
       await before.flush();
       return id;

@@ -9,10 +9,11 @@ import type {
   StepAnswers,
   TextQuestion,
 } from '../../domain';
+import type { EntityChange } from '../../app/entity-change';
 import { AnswerFieldComponent } from '../answer-field/answer-field.component';
 import { ChoiceFieldComponent } from '../choice-field/choice-field.component';
 import { EntityListComponent } from '../entity-list/entity-list.component';
-import type { EntityChange } from '../entity-list/entity-change';
+
 
 type Field =
   | { readonly type: 'entities'; readonly key: string; readonly question: EntityListQuestion }

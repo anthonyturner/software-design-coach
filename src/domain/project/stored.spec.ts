@@ -121,14 +121,50 @@ describe('migrateProject', () => {
       expect(new Set(project?.entities.actor.map((actor) => actor.id)).size).toBe(2);
     });
 
-    it('keeps every other answer, and does not keep the roles twice', () => {
+    it('keeps every other answer, and does not keep the roles or the needs twice', () => {
       const project = migrate(sliceOneProject());
 
       expect(project?.answers).toEqual({
         problem: { problem: 'No-shows cost us chairs', success: 'Fewer than one in ten' },
-        users: { needs: 'Stop phoning', primary: 'Receptionist' },
+        users: { primary: 'Receptionist' },
         goals: { goals: ['fewer no-shows'] },
       });
+    });
+
+    function withUsers(users: unknown): unknown {
+      return { ...(sliceOneProject() as object), answers: { users } };
+    }
+
+    it('carries the needs text onto the first actor when there are several roles', () => {
+      const project = migrate(sliceOneProject());
+
+      expect(project?.entities.actor.map((actor) => actor.fields['needs'])).toEqual(['Stop phoning', '']);
+    });
+
+    it('carries the needs text onto the only actor', () => {
+      const project = migrate(withUsers({ users: ['Receptionist'], needs: 'Stop phoning' }));
+
+      expect(project?.entities.actor).toEqual([
+        { id: 'actor-1', name: 'Receptionist', fields: { needs: 'Stop phoning' } },
+      ]);
+      expect(project?.answers).toEqual({ users: {} });
+    });
+
+    it('gives needs text with no roles to one unnamed actor rather than losing it', () => {
+      const withoutList = migrate(withUsers({ needs: 'Stop phoning' }));
+      const emptyList = migrate(withUsers({ users: [], needs: 'Stop phoning' }));
+
+      for (const project of [withoutList, emptyList]) {
+        expect(project?.entities.actor).toEqual([{ id: 'actor-1', name: '', fields: { needs: 'Stop phoning' } }]);
+        expect(project?.answers).toEqual({ users: {} });
+      }
+    });
+
+    it('drops blank needs text without inventing an actor', () => {
+      const project = migrate(withUsers({ needs: '  \n ' }));
+
+      expect(project?.entities.actor).toEqual([]);
+      expect(project?.answers).toEqual({ users: {} });
     });
 
     it('starts with no rows of the kinds that did not exist yet', () => {

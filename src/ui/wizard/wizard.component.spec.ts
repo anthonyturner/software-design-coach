@@ -307,6 +307,51 @@ describe('WizardComponent', () => {
       expect(rows(page)).toHaveLength(0);
     });
 
+    it('puts the cursor on the neighbouring row after a removal, or on Add when none is left', async () => {
+      const page = await open('p1');
+      await twoActors(page);
+
+      await click(buttonLabelled(page, 'Remove Receptionist'));
+      expect(document.activeElement).toBe(fieldLabelled(rows(page)[0], 'Role'));
+      expect(fieldLabelled(rows(page)[0], 'Role').value).toBe('Patient');
+
+      await click(buttonLabelled(page, 'Remove Patient'));
+      expect(document.activeElement).toBe(page.querySelector('.entities__add'));
+    });
+
+    it('puts the cursor on the row before when the last row is removed', async () => {
+      const page = await open('p1');
+      await twoActors(page);
+
+      await click(buttonLabelled(page, 'Remove Patient'));
+
+      expect(document.activeElement).toBe(fieldLabelled(rows(page)[0], 'Role'));
+      expect(fieldLabelled(rows(page)[0], 'Role').value).toBe('Receptionist');
+    });
+
+    it('does not offer a concept as related to itself', async () => {
+      const page = await open('p1');
+      await goTo(page, 'Domain Concepts');
+      await press(page, 'Add concept');
+      await type(rows(page)[0], 'Concept', 'Patient');
+      await press(page, 'Add concept');
+      await type(rows(page)[1], 'Concept', 'Appointment');
+
+      expect(references(rows(page)[0]).map((option) => option.label)).toEqual(['Appointment']);
+      expect(references(rows(page)[1]).map((option) => option.label)).toEqual(['Patient']);
+    });
+
+    it('links the list-level hint to its group', async () => {
+      const page = await open('p1');
+      await goTo(page, 'Users');
+
+      const group = page.querySelector('.entities');
+      const hint = group?.querySelector('.field__hint');
+
+      expect(hint?.id).toBeTruthy();
+      expect(group?.getAttribute('aria-describedby')).toBe(hint?.id);
+    });
+
     it('reorders rows with the move buttons and keeps the keyboard on the button it used', async () => {
       const page = await open('p1');
       await twoActors(page);

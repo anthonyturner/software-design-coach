@@ -71,21 +71,32 @@ function upgrade(stored: StoredProject): StoredProject | undefined {
 }
 
 /**
- * Schema 1 kept the roles listed under Users as a list of strings among the answers. Schema 2 keeps
- * them as actor rows, so each role becomes an actor and is no longer stored as an answer.
+ * Schema 1 kept the roles listed under Users, and one free-text "needs" answer for all of them,
+ * among the answers. Schema 2 keeps roles as actor rows with their own `needs`, so each role becomes
+ * an actor, and the old text moves onto the first actor (an unnamed one if there were no roles)
+ * instead of being left behind where no question reads it.
  */
 function fromSchema1(stored: StoredProject): StoredProject {
   const { answers } = stored;
   const users = isRecord(answers) ? answers['users'] : undefined;
-  const roles = isRecord(users) ? users['users'] : undefined;
-  if (!isRecord(answers) || !isRecord(users) || !Array.isArray(roles)) {
+  if (!isRecord(answers) || !isRecord(users)) {
     return { ...stored, schemaVersion: 2, entities: {} };
   }
-  const otherUserAnswers = Object.fromEntries(Object.entries(users).filter(([question]) => question !== 'users'));
-  const actors = roles
-    .filter((role): role is string => typeof role === 'string' && role.trim() !== '')
-    .map((role, index) => ({ id: `actor-${index + 1}`, name: role.trim(), fields: { needs: '' } }));
-  return { ...stored, schemaVersion: 2, answers: { ...answers, users: otherUserAnswers }, entities: { actor: actors } };
+  const roles: unknown = users['users'];
+  const names = Array.isArray(roles)
+    ? roles.filter((role): role is string => typeof role === 'string' && role.trim() !== '').map((role) => role.trim())
+    : [];
+  const needs = typeof users['needs'] === 'string' ? users['needs'] : undefined;
+  if (needs !== undefined && needs.trim() !== '' && names.length === 0) {
+    names.push('');
+  }
+  const actors = names.map((name, index) => ({
+    id: `actor-${index + 1}`,
+    name,
+    fields: { needs: index === 0 && needs !== undefined ? needs.trim() : '' },
+  }));
+  const kept = Object.entries(users).filter(([question]) => question !== 'users' && !(question === 'needs' && needs !== undefined));
+  return { ...stored, schemaVersion: 2, answers: { ...answers, users: Object.fromEntries(kept) }, entities: { actor: actors } };
 }
 
 function parseEntities(value: unknown): ProjectEntities | undefined {

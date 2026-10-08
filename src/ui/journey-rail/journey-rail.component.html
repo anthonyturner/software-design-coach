@@ -11,7 +11,9 @@
         >
           <span class="rail__marker" aria-hidden="true">{{ item.marker }}</span>
           <span class="rail__name">{{ item.label }}</span>
-          <span class="rail__state">, {{ item.stateName }}</span>
+          @if (item.stateName) {
+            <span class="rail__state">, {{ item.stateName }}</span>
+          }
         </button>
       </li>
     }

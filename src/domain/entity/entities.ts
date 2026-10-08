@@ -54,7 +54,9 @@ export function withoutEntity(entities: ProjectEntities, kind: EntityKind, id: s
   const next: Record<EntityKind, readonly Entity[]> = { ...entities };
   for (const other of ENTITY_KINDS) {
     const survivors = other === kind ? entities[other].filter((entity) => entity.id !== id) : entities[other];
-    next[other] = survivors.map((entity) => withoutReferenceTo(entity, other, kind, id));
+    const cleaned = survivors.map((entity) => withoutReferenceTo(entity, other, kind, id));
+    const unchanged = cleaned.every((entity, index) => entity === survivors[index]);
+    next[other] = other !== kind && unchanged ? entities[other] : cleaned;
   }
   return next;
 }
@@ -80,7 +82,7 @@ function applyEdit(entities: ProjectEntities, kind: EntityKind, entity: Entity, 
   let changed = false;
   for (const field of entityDefinitions[kind].fields) {
     const proposed = edit.fields?.[field.key];
-    const accepted = proposed === undefined ? undefined : accept(entities, field, proposed);
+    const accepted = proposed === undefined ? undefined : accept(entities, kind, entity.id, field, proposed);
     if (accepted !== undefined && !sameValue(accepted, fields[field.key])) {
       fields[field.key] = accepted;
       changed = true;
@@ -90,7 +92,7 @@ function applyEdit(entities: ProjectEntities, kind: EntityKind, entity: Entity, 
   return changed || name !== entity.name ? { ...entity, name, fields } : entity;
 }
 
-function accept(entities: ProjectEntities, field: EntityField, value: FieldValue): FieldValue | undefined {
+function accept(entities: ProjectEntities, kind: EntityKind, ownId: string, field: EntityField, value: FieldValue): FieldValue | undefined {
   if (field.kind === 'text') {
     return typeof value === 'string' ? value : undefined;
   }
@@ -98,6 +100,9 @@ function accept(entities: ProjectEntities, field: EntityField, value: FieldValue
     return undefined;
   }
   const known = new Set(entities[field.references].map((entity) => entity.id));
+  if (field.references === kind) {
+    known.delete(ownId);
+  }
   return [...new Set(value)].filter((id) => known.has(id));
 }
 

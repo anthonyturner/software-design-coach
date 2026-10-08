@@ -1,0 +1,28 @@
+<div class="answer">
+  <label class="field__label" [attr.for]="fieldId()">{{ question().prompt }}</label>
+  @if (question().hint; as hint) {
+    <p class="field__hint" [id]="hintId()">{{ hint }}</p>
+  }
+  @if (question().kind === 'short-text') {
+    <input
+      #input
+      class="field__input"
+      type="text"
+      autocomplete="off"
+      [id]="fieldId()"
+      [value]="text()"
+      [attr.aria-describedby]="describedBy()"
+      (input)="edit(input.value)"
+    />
+  } @else {
+    <textarea
+      #textarea
+      class="field__input"
+      rows="5"
+      [id]="fieldId()"
+      [value]="text()"
+      [attr.aria-describedby]="describedBy()"
+      (input)="edit(textarea.value)"
+    ></textarea>
+  }
+</div>

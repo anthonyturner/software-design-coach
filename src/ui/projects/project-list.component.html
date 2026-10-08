@@ -1,0 +1,32 @@
+<section class="projects" aria-labelledby="projects-title">
+  <h2 class="projects__title" id="projects-title">Your design projects</h2>
+  <p class="projects__lede">Plan the design before you write the code.</p>
+
+  <form class="projects__create" (submit)="create($event, name.value)">
+    <label class="field__label" for="project-name">Name a new project</label>
+    <div class="projects__create-row">
+      <input #name class="field__input" id="project-name" type="text" autocomplete="off" />
+      <button type="submit" class="button button--primary">Create project</button>
+    </div>
+  </form>
+
+  @if (rows().length > 0) {
+    <ul class="projects__list" aria-label="Saved projects">
+      @for (row of rows(); track row.id) {
+        <li class="projects__item">
+          <a class="projects__link" [routerLink]="row.link">
+            <span class="projects__name">{{ row.name }}</span>
+            <span class="projects__meta">{{ row.meta }}</span>
+          </a>
+        </li>
+      }
+    </ul>
+  } @else {
+    <p class="projects__empty">No projects yet. Name one above to begin.</p>
+  }
+
+  <p class="projects__storage">
+    Projects are saved in this browser only. Clearing site data, or using another browser, hides them.
+  </p>
+  <sdc-storage-notice [problem]="store.problem()" />
+</section>

@@ -1,0 +1,53 @@
+// Shared controls (ADR-0006): each is defined once here and reused by every
+// component, so a change to a button or a field is one edit.
+.button {
+  padding: var(--sdc-space-2) var(--sdc-space-4);
+  background: transparent;
+  border: var(--sdc-border-width) solid var(--sdc-color-border-strong);
+  border-radius: var(--sdc-radius-sm);
+  color: var(--sdc-color-text);
+  cursor: pointer;
+  font: inherit;
+  font-weight: var(--sdc-font-weight-medium);
+
+  &:hover {
+    background: var(--sdc-color-surface-raised);
+  }
+
+  &--primary {
+    background: var(--sdc-color-accent);
+    border-color: var(--sdc-color-accent);
+    color: var(--sdc-color-accent-contrast);
+
+    &:hover {
+      background: var(--sdc-color-focus);
+    }
+  }
+}
+
+.field {
+  &__label {
+    display: block;
+    font-weight: var(--sdc-font-weight-medium);
+  }
+
+  &__hint {
+    color: var(--sdc-color-text-muted);
+    font-size: var(--sdc-font-size-sm);
+  }
+
+  &__input {
+    width: 100%;
+    padding: var(--sdc-space-2) var(--sdc-space-3);
+    background: var(--sdc-color-bg);
+    border: var(--sdc-border-width) solid var(--sdc-color-border-strong);
+    border-radius: var(--sdc-radius-sm);
+    color: var(--sdc-color-text);
+    font: inherit;
+    line-height: var(--sdc-line-height-body);
+
+    &:focus-visible {
+      border-color: var(--sdc-color-focus);
+    }
+  }
+}

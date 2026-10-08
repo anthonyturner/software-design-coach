@@ -1,0 +1,31 @@
+:host {
+  display: grid;
+  gap: var(--sdc-space-5);
+}
+
+.wizard {
+  &__back {
+    justify-self: start;
+    font-size: var(--sdc-font-size-sm);
+  }
+
+  &__header {
+    display: grid;
+    gap: var(--sdc-space-1);
+  }
+
+  &__title {
+    font-size: var(--sdc-font-size-2xl);
+  }
+
+  &__mode {
+    color: var(--sdc-color-text-muted);
+    letter-spacing: var(--sdc-letter-spacing-caps);
+    text-transform: uppercase;
+  }
+
+  &__message {
+    max-width: 65ch;
+    color: var(--sdc-color-text-muted);
+  }
+}

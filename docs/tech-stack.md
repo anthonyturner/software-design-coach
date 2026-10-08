@@ -9,9 +9,9 @@ so a missing line costs more than a long one.
 - Angular — conventions in [stack/angular.md](stack/angular.md) and
   [stack/ui-components.md](stack/ui-components.md)
 - Angular, standalone components with signals and zoneless change detection
-  (planned — [mvp-plan.md](mvp-plan.md) §4). Styling: SCSS with design tokens
-  as CSS custom properties, BEM class names, our own small component set; no
-  Bootstrap unless the plan review decides otherwise.
+  ([mvp-plan.md](mvp-plan.md) §4). Styling: SCSS with design tokens as CSS
+  custom properties, BEM class names, our own small component set with a dark
+  developer-tool look. No Bootstrap (decided in the plan review).
 - Diagrams: the `mermaid` npm package, lazy-loaded behind an adapter.
 - Data: browser `localStorage` only, behind a `ProjectRepository` port. No
   backend, no external services, no AI provider calls in the MVP.

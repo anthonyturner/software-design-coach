@@ -1,7 +1,6 @@
 # MVP architecture and implementation plan
 
-- **Status:** Proposed — awaiting review. No application code is written until
-  this is accepted.
+- **Status:** Accepted 2026-10-08 by Anthony Turner (answers in §7).
 - **Date:** 2026-10-08
 - **Source:** [product-spec.md](product-spec.md), sections 12, 14 and 16 in
   particular.
@@ -186,13 +185,14 @@ advisor.
 - **Manual check** in the running app for each slice's acceptance criteria,
   reported in the PR as still needed or done.
 
-## 7. Open questions for review
+## 7. Review decisions
 
-1. **Bootstrap or own component system?** Recommendation: own small system on
-   CSS tokens, for the look spec §13 asks for. Bootstrap would be faster for
-   forms but pulls toward the generic look the spec rules out.
-2. **Dependencies.** Approve Angular, `mermaid`, Vitest, angular-eslint, husky
-   and commitlint?
-3. **Repository visibility.** Created **private**. Make it public?
-4. **Order of slices 3 and 5.** Diagrams before the second workflow is the
-   recommendation — it validates the "projections" decision earlier.
+Reviewed and accepted on 2026-10-08:
+
+1. **Own small component system** on CSS tokens with a dark developer-tool
+   look. No Bootstrap.
+2. **Dependencies approved:** Angular, `mermaid`, Vitest, angular-eslint,
+   husky and commitlint.
+3. **The repository is public.**
+4. **Slice order stands:** diagrams (slice 3) before the Feature / Change
+   workflow (slice 5).

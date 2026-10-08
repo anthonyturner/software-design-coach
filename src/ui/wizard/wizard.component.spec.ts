@@ -723,4 +723,104 @@ describe('WizardComponent', () => {
       expect(chosenRadio(reloaded)).toBe('Four modules');
     });
   });
+
+  describe('saying that nothing needs listing, and the small things around it', () => {
+    const noneBox = (page: HTMLElement): HTMLInputElement | null =>
+      page.querySelector<HTMLInputElement>('.entities__none input[type="checkbox"]');
+
+    async function oneModule(page: HTMLElement): Promise<void> {
+      await goTo(page, 'Modules');
+      await press(page, 'Add module');
+      await type(rows(page)[0], 'Module', 'Reminders');
+    }
+
+    async function twoModules(page: HTMLElement): Promise<void> {
+      await oneModule(page);
+      await press(page, 'Add module');
+      await type(rows(page)[1], 'Module', 'Messaging');
+    }
+
+    it('lets a one-module design finish Dependencies by saying that nothing depends on anything', async () => {
+      const page = await open('p1');
+      await oneModule(page);
+      await goTo(page, 'Dependencies');
+      expect(noneBox(page)?.closest('label')?.textContent?.trim()).toBe('No module depends on another');
+      expect(page.querySelector('.step__status')?.textContent).toContain('1 required question is still open');
+
+      await click(noneBox(page) as HTMLInputElement);
+
+      expect(noneBox(page)?.checked).toBe(true);
+      expect(page.querySelector('.step__status')?.textContent).toBe('Every required question on this step is answered.');
+      await goTo(page, 'Goals');
+      expect(railState(page, 'Dependencies')).toBe(', done');
+    });
+
+    it('can be taken back, and survives a reload', async () => {
+      const page = await open('p1');
+      await oneModule(page);
+      await goTo(page, 'Dependencies');
+      await click(noneBox(page) as HTMLInputElement);
+
+      const reloaded = await reload('p1');
+      expect(noneBox(reloaded)?.checked).toBe(true);
+
+      await click(noneBox(reloaded) as HTMLInputElement);
+      expect(reloaded.querySelector('.step__status')?.textContent).toContain('1 required question is still open');
+    });
+
+    it('is not offered when there are no modules to say it about', async () => {
+      const page = await open('p1');
+
+      await goTo(page, 'Dependencies');
+
+      expect(noneBox(page)).toBeNull();
+    });
+
+    it('unticks itself when a dependency is added, and cannot be ticked while one exists', async () => {
+      const page = await open('p1');
+      await twoModules(page);
+      await goTo(page, 'Dependencies');
+      await click(noneBox(page) as HTMLInputElement);
+
+      await pickReference(rows(page)[0], 'Messaging');
+
+      expect(noneBox(page)?.checked).toBe(false);
+      expect(noneBox(page)?.disabled).toBe(true);
+
+      await pickReference(rows(page)[0], 'Messaging');
+      expect(noneBox(page)?.checked).toBe(false);
+      expect(noneBox(page)?.disabled).toBe(false);
+    });
+
+    it('shows the hint for a field once above the rows, not again inside each one', async () => {
+      const page = await open('p1');
+      await twoModules(page);
+
+      await goTo(page, 'Responsibilities');
+
+      expect(page.querySelectorAll('.entities > .field__hint')).toHaveLength(1);
+      expect(rows(page).flatMap((row) => [...row.querySelectorAll('.field__hint')])).toEqual([]);
+    });
+
+    it('ties the empty text of a reference list to the list, so a screen reader reads it with the group', async () => {
+      const page = await open('p1');
+      await goTo(page, 'Use Cases');
+      await press(page, 'Add use case');
+
+      const group = rows(page)[0].querySelector('fieldset.entity__references');
+      const described = group?.getAttribute('aria-describedby')?.split(' ').map((id) => page.querySelector(`#${id}`)?.textContent);
+
+      expect(described).toEqual(['No actors listed yet.']);
+    });
+
+    it('ties the empty text of a choice to the choice', async () => {
+      const page = await open('p1');
+      await goTo(page, 'Decision');
+
+      const group = page.querySelector('fieldset.choice');
+      const described = group?.getAttribute('aria-describedby')?.split(' ').map((id) => page.querySelector(`#${id}`)?.textContent);
+
+      expect(described).toEqual(['No architecture options named yet. Name them in an earlier step, then come back.']);
+    });
+  });
 });

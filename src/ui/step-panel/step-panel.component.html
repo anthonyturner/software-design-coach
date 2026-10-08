@@ -27,7 +27,9 @@
           <sdc-entity-fields
             [question]="field.question"
             [entities]="entities()"
+            [answer]="field.value"
             (changed)="entityChanged.emit({ entity: field.question.entity, change: $event })"
+            (answered)="answered.emit({ questionId: field.question.id, value: $event })"
           />
         } @else if (field.type === 'choice') {
           <sdc-choice-field

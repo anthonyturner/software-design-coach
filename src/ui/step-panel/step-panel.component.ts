@@ -19,7 +19,12 @@ import { EntityListComponent } from '../entity-list/entity-list.component';
 
 type Field =
   | { readonly type: 'entities'; readonly key: string; readonly question: EntityListQuestion }
-  | { readonly type: 'entity-fields'; readonly key: string; readonly question: EntityFieldsQuestion }
+  | {
+      readonly type: 'entity-fields';
+      readonly key: string;
+      readonly question: EntityFieldsQuestion;
+      readonly value: AnswerValue | undefined;
+    }
   | {
       readonly type: 'choice';
       readonly key: string;
@@ -62,7 +67,7 @@ export class StepPanelComponent {
         case 'entity-list':
           return { type: 'entities', key, question };
         case 'entity-fields':
-          return { type: 'entity-fields', key, question };
+          return { type: 'entity-fields', key, question, value };
         case 'entity-choice':
           return {
             type: 'choice',

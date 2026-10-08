@@ -16,6 +16,13 @@
     list-style: none;
   }
 
+  &__none {
+    display: flex;
+    align-items: center;
+    gap: var(--sdc-space-2);
+    cursor: pointer;
+  }
+
   &__add {
     justify-self: start;
   }

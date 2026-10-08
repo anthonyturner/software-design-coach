@@ -29,5 +29,18 @@
         </li>
       }
     </ul>
+    @if (view().none; as none) {
+      <label class="entities__none">
+        <input
+          #noneBox
+          class="entity__checkbox"
+          type="checkbox"
+          [checked]="none.checked"
+          [disabled]="none.disabled"
+          (change)="say(noneBox.checked)"
+        />
+        <span>{{ none.label }}</span>
+      </label>
+    }
   }
 </div>

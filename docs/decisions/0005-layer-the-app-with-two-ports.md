@@ -43,6 +43,13 @@ adapter implements):
 - `DiagramRenderer` — `render(source, host)`, implemented by the Mermaid
   adapter.
 
+Both interfaces are declared in `app/`, the layer that uses them, never in
+`infrastructure/`; `ProjectRepository`'s signatures use only domain types.
+`DiagramRenderer` takes a DOM host, so it cannot live in `domain/`. Note that
+`domain/` does own Mermaid **syntax** — it produces Mermaid text as plain
+strings. What it must not import is the Mermaid **library**, which is what
+[rule 16](../rules.md) forbids.
+
 Everything else is called directly. A new port needs something real that
 varies behind it. The AI advisor port arrives with the post-MVP slice that
 first needs it, not before.

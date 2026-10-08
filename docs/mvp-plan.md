@@ -23,7 +23,8 @@ Markdown export, local persistence.
 Out of MVP scope, with a seam left for each: AI provider calls, the heuristic
 critique engine (§8), design-it-twice comparisons and auto-generated ADRs
 (§7, §9), downstream-impact tracking, the history timeline, JSON/Mermaid
-export, codebase import.
+export, codebase import, and three of the spec's nine diagram kinds
+(sequence, data model, architecture).
 
 ## 2. The key design decision: the project is a structured model, everything else is a projection
 
@@ -123,7 +124,9 @@ Why these seams, and only these:
 | Hosting | None in the MVP — runs locally with `ng serve` | Spec §12: no unnecessary infrastructure. A static host is a one-step addition later. |
 
 Approved dependencies (rule 6): Angular itself, `mermaid`, Vitest,
-angular-eslint, husky, commitlint. Anything else still needs sign-off.
+angular-eslint, husky, commitlint (`@commitlint/cli` plus
+`@commitlint/config-conventional`, which `.commitlintrc.json` extends).
+Anything else still needs sign-off.
 
 ## 5. Screens
 
@@ -159,7 +162,8 @@ Red → Green → Refactor. Sizes are relative (XS–XL).
 | --- | --- | --- | --- |
 | 0 | **Scaffold.** Angular app, strict TS, Vitest, ESLint, husky/commitlint, dark theme tokens, app shell, CI workflow. Fill in real commands. | The toolchain and checks work end to end. | S |
 | 1 | **Walking skeleton.** Domain model + workflow schema + ProjectStore + LocalStorage repository. Create a New Project, answer the first three steps (Problem, Users, Goals), reload the page and resume. | The core model, persistence and wizard loop. Every later slice adds content or a projection to this. | M |
-| 2 | **New Project workflow, complete.** All 19 steps as content: why, questions, example, challenge prompts; typed answers including entity lists; journey rail with progress and free navigation. | Progressive disclosure and the step content format scale to a full workflow. | L |
+| 2a | **New Project workflow, steps 1–9.** Problem through Modules as content: why, questions, example, challenge prompts; typed answers including entity lists; journey rail with progress and free navigation. | Progressive disclosure and entity lists work in the step content format. | M |
+| 2b | **New Project workflow, steps 10–19.** Responsibilities through Design Review as content, including module details (responsibilities, hidden knowledge, dependencies). | The content format scales to a full workflow. | M |
 | 3 | **Live diagrams.** Mermaid renderer adapter; diagrams derived from the model: system context, use case, domain model, module, dependency, first vertical slice. | "Diagrams are projections" works; the domain layer stays DOM-free. | M |
 | 4 | **Interactive module diagram.** Click a module → drawer with responsibilities, hidden knowledge, dependencies and related notes. | Spec §6 interactivity. | S |
 | 5 | **Feature / Change workflow.** The 14-step workflow as content, reusing everything from slices 1–4. | The workflow engine is general, not shaped around one mode. | M |

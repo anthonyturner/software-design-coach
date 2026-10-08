@@ -6,10 +6,11 @@ deployed. Agents read this to avoid proposing a tool the project does not use,
 so a missing line costs more than a long one.
 
 - Node.js and strict TypeScript — rules in [stack/typescript.md](stack/typescript.md)
-- Angular — conventions in [stack/angular.md](stack/angular.md) and
-  [stack/ui-components.md](stack/ui-components.md)
 - Angular, standalone components with signals and zoneless change detection
-  (planned — [mvp-plan.md](mvp-plan.md) §4). Styling: SCSS with design tokens
+  (planned — [mvp-plan.md](mvp-plan.md) §4); conventions in
+  [stack/angular.md](stack/angular.md) and
+  [stack/ui-components.md](stack/ui-components.md), whose styling section this
+  project adopts. Styling: SCSS with design tokens
   as CSS custom properties, BEM class names, our own small component set; no
   Bootstrap or other UI kit ([ADR-0006](decisions/0006-build-our-own-component-system.md)).
 - Diagrams: the `mermaid` npm package, lazy-loaded behind an adapter

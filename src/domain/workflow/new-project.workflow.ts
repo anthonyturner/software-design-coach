@@ -3,6 +3,7 @@ import type { Workflow } from './workflow.types';
 export const newProjectWorkflow: Workflow = {
   mode: 'new-project',
   title: 'New Project',
+  summary: 'Plan a system that does not exist yet, from the problem it solves through to a design review.',
   steps: [
     {
       id: 'problem',
@@ -650,6 +651,7 @@ export const newProjectWorkflow: Workflow = {
       id: 'first-vertical-slice',
       title: 'First Vertical Slice',
       diagram: 'first-vertical-slice',
+      slice: { useCase: 'use-case', path: 'path' },
       think: 'What is the thinnest piece you can build end to end that proves the design?',
       why:
         'A vertical slice cuts through every module a behaviour needs, instead of finishing one layer at a time, ' +

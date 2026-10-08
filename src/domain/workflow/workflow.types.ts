@@ -1,11 +1,15 @@
 import type { DiagramKind } from '../diagrams/diagram.types';
 import type { EntityKind } from '../entity/entity.types';
 
-export type ProjectMode = 'new-project';
+export const PROJECT_MODES = ['new-project', 'feature-change'] as const;
+
+export type ProjectMode = (typeof PROJECT_MODES)[number];
 
 export interface ChoiceOption {
   readonly value: string;
   readonly label: string;
+  /** A sentence under the label that says what picking it means, for an option that needs more than its name. */
+  readonly detail?: string;
 }
 
 interface QuestionBase {
@@ -72,10 +76,17 @@ export interface Step {
   readonly challenges: readonly string[];
   /** The diagram drawn beside the step, from the model as it stands; a step that shows none leaves this out. */
   readonly diagram?: DiagramKind;
+  /**
+   * Marks the step where the first slice is chosen and traced, and names the questions that hold the
+   * chosen use case and the traced path. The first-slice diagram reads the answers from them.
+   */
+  readonly slice?: { readonly useCase: string; readonly path: string };
 }
 
 export interface Workflow {
   readonly mode: ProjectMode;
   readonly title: string;
+  /** What the workflow is for, in a sentence: how a user tells it apart from the others when choosing. */
+  readonly summary: string;
   readonly steps: readonly Step[];
 }

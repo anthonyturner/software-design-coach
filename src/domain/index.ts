@@ -40,7 +40,8 @@ export {
 export type { AnswerValue, Project, ProjectSummary, StepAnswers } from './project/project.types';
 export { isStoredProject, migrateProject } from './project/stored';
 export type { StoredProject } from './project/stored';
-export { adjacentSteps, findQuestion, findStep, isProjectMode, workflowFor } from './workflow/workflow';
+export { adjacentSteps, findQuestion, findSlice, findStep, isProjectMode, workflowFor } from './workflow/workflow';
+export { PROJECT_MODES } from './workflow/workflow.types';
 export type {
   AnswerKind,
   ChoiceOption,

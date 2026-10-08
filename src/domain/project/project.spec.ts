@@ -49,6 +49,47 @@ describe('createProject', () => {
   });
 });
 
+describe('a Feature / Change project', () => {
+  function featureChange(): ReturnType<typeof createProject> {
+    return createProject({ id: 'f1', name: 'Cancel by text', mode: 'feature-change', now: created });
+  }
+
+  it('starts at the first step of its own workflow', () => {
+    expect(featureChange()).toMatchObject({ mode: 'feature-change', currentStepId: 'change', answers: {} });
+  });
+
+  it('records answers to its own questions, and only to its own', () => {
+    const answered = answer(featureChange(), 'why', 'value', 'The desk stops phoning', later);
+
+    expect(answered.answers).toEqual({ why: { value: 'The desk stops phoning' } });
+    expect(answer(featureChange(), 'problem', 'problem', 'x', later)).toEqual(featureChange());
+  });
+
+  it('moves between its own steps, and refuses a step from the other workflow', () => {
+    expect(goTo(featureChange(), 'leakage-coupling-check', later).currentStepId).toBe('leakage-coupling-check');
+    expect(goTo(featureChange(), 'problem', later).currentStepId).toBe('change');
+  });
+
+  it('drops the recommended option when that option is removed', () => {
+    let project = updateEntity(
+      addEntity(featureChange(), 'architecture-option', 'o1', later),
+      'architecture-option',
+      'o1',
+      { name: 'Interpret in Reminders' },
+      later,
+    );
+    project = answer(project, 'recommended-design', 'chosen', 'o1', later);
+
+    expect(stepAnswers(project, 'recommended-design')['chosen']).toBe('o1');
+    expect(stepAnswers(removeEntity(project, 'architecture-option', 'o1', later), 'recommended-design')['chosen']).toBeUndefined();
+  });
+
+  it('is summarised with its mode', () => {
+    expect(summarize(featureChange()).mode).toBe('feature-change');
+    expect(isProjectSummary(summarize(featureChange()))).toBe(true);
+  });
+});
+
 describe('answer', () => {
   it('records a text answer under its step and question', () => {
     const project = answer(newProject(), 'problem', 'problem', 'No-shows cost us chairs', later);

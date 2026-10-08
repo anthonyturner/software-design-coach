@@ -128,6 +128,34 @@ describe('migrateProject', () => {
     expect(project?.currentStepId).toBe('problem');
   });
 
+  describe('a Feature / Change project', () => {
+    function savedFeatureChange(): unknown {
+      let project = createProject({ id: 'f1', name: 'Cancel by text', mode: 'feature-change', now });
+      project = answer(project, 'why', 'value', 'The desk stops phoning', now);
+      project = addEntity(project, 'module', 'm1', now);
+      project = updateEntity(project, 'module', 'm1', { name: 'Reminders', fields: { hides: 'Timing rules' } }, now);
+      return { ...JSON.parse(JSON.stringify(project)), currentStepId: 'current-ownership' };
+    }
+
+    it('opens as it was saved, with no change to the schema', () => {
+      const project = migrate(savedFeatureChange());
+
+      expect(project).toMatchObject({
+        schemaVersion: SCHEMA_VERSION,
+        mode: 'feature-change',
+        currentStepId: 'current-ownership',
+        answers: { why: { value: 'The desk stops phoning' } },
+      });
+      expect(project?.entities.module.map((module) => module.name)).toEqual(['Reminders']);
+    });
+
+    it('goes back to its own first step, not the other workflow one, when its step no longer exists', () => {
+      const raw = { ...(savedFeatureChange() as object), currentStepId: 'a-step-we-removed' };
+
+      expect(migrate(raw)?.currentStepId).toBe('change');
+    });
+  });
+
   it('keeps answers to steps and questions it does not know', () => {
     const project = migrate(withField('answers', { later: { thing: 'kept' } }));
 

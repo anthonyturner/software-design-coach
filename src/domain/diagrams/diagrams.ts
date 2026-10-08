@@ -2,13 +2,8 @@ import { entityLabel, isNamed, listField, textField } from '../entity/entities';
 import type { Entity, EntityKind } from '../entity/entity.types';
 import { stepAnswers } from '../project/project';
 import type { Project } from '../project/project.types';
+import { findSlice, workflowFor } from '../workflow/workflow';
 import type { DiagramKind, ModuleNode } from './diagram.types';
-
-/**
- * Where the first-slice diagram reads its answers. `diagrams.spec.ts` checks that the workflow still
- * asks these questions, so renaming one fails a test instead of quietly blanking the diagram.
- */
-const SLICE = { stepId: 'first-vertical-slice', useCase: 'use-case', path: 'path' } as const;
 
 type Shape = 'box' | 'rounded' | 'stadium' | 'subroutine';
 
@@ -142,16 +137,21 @@ function drawDependencies(project: Project): readonly string[] {
   ];
 }
 
+/** Reads the answers from the step its workflow marks as choosing and tracing the slice (`Step.slice`). */
 function drawFirstSlice(project: Project): readonly string[] {
-  const answers = stepAnswers(project, SLICE.stepId);
-  const chosen = answers[SLICE.useCase];
+  const slice = findSlice(workflowFor(project.mode));
+  if (!slice) {
+    return [];
+  }
+  const answers = stepAnswers(project, slice.stepId);
+  const chosen = answers[slice.useCase];
   const useCase = named(project, 'use-case').find((candidate) => candidate.id === chosen);
   if (!useCase) {
     return [];
   }
   const performers = listField(useCase, 'actors');
   const actors = named(project, 'actor').filter((actor) => performers.includes(actor.id));
-  const hops = hopsOf(answers[SLICE.path]);
+  const hops = hopsOf(answers[slice.path]);
   const chain = [nodeId(useCase.id), ...hops.map((_, index) => `hop${index + 1}`)];
   return [
     ...actors.map((actor) => node(nodeId(actor.id), 'box', label(actor.name))),

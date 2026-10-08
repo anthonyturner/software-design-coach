@@ -1,7 +1,6 @@
 import { addEntity, answer, createProject, removeEntity, updateEntity } from '../project/project';
 import type { Project } from '../project/project.types';
 import type { EntityEdit, EntityKind } from '../entity/entity.types';
-import { findQuestion, workflowFor } from '../workflow/workflow';
 import { DIAGRAM_KINDS } from './diagram.types';
 import { diagramDefinitions } from './diagram-definitions';
 import { diagramFor, moduleNodes } from './diagrams';
@@ -10,6 +9,10 @@ const now = '2026-10-08T09:00:00.000Z';
 
 function newProject(name = 'Reminders'): Project {
   return createProject({ id: 'p1', name, mode: 'new-project', now });
+}
+
+function newFeatureChange(): Project {
+  return createProject({ id: 'p2', name: 'Cancel by text', mode: 'feature-change', now });
 }
 
 /** Adds one named row, with whatever fields it needs, the way the store would. */
@@ -253,12 +256,33 @@ describe('diagramFor', () => {
     it('draws nothing once the chosen use case is removed', () => {
       expect(diagramFor(removeEntity(traced, 'use-case', 'u1', now), 'first-vertical-slice')).toBeUndefined();
     });
+  });
 
-    it('reads questions the workflow really asks, so renaming one cannot silently blank the diagram', () => {
-      const workflow = workflowFor('new-project');
+  describe('first vertical slice of a Feature / Change project', () => {
+    const base = withRow(
+      withRow(newFeatureChange(), 'actor', 'a1', 'Patient'),
+      'use-case',
+      'u1',
+      'Patient cancels by text',
+      { actors: ['a1'] },
+    );
+    const chosen = answer(base, 'smallest-safe-implementation', 'use-case', 'u1', now);
 
-      expect(findQuestion(workflow, 'first-vertical-slice', 'use-case')?.kind).toBe('entity-choice');
-      expect(findQuestion(workflow, 'first-vertical-slice', 'path')?.kind).toBe('long-text');
+    it('reads the step its workflow names, not the one New Project uses', () => {
+      const text = lines(diagramFor(chosen, 'first-vertical-slice'));
+
+      expect(text).toContain('n_u1(["Patient cancels by text"])');
+      expect(text).toContain('n_a1 --> n_u1');
+    });
+
+    it('draws the traced path from the same step', () => {
+      const traced = answer(chosen, 'smallest-safe-implementation', 'path', 'Messaging hands the reply on\nReminders cancels it', now);
+
+      expect(lines(diagramFor(traced, 'first-vertical-slice'))).toContain('n_u1 --> hop1');
+    });
+
+    it('draws nothing until a behaviour is chosen', () => {
+      expect(diagramFor(base, 'first-vertical-slice')).toBeUndefined();
     });
   });
 

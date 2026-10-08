@@ -7,7 +7,7 @@
         <h2 class="wizard__title">{{ v.projectName }}</h2>
         <p class="wizard__mode">{{ v.workflowTitle }}</p>
       </header>
-      <div class="wizard__layout">
+      <div class="wizard__layout" [class.wizard__layout--diagram]="v.diagram !== undefined">
         <sdc-journey-rail class="wizard__rail" [stops]="store.journey()" (selected)="goTo($event)" />
         <sdc-step-panel
           [step]="v.step"
@@ -23,6 +23,9 @@
           (back)="goTo(v.previousId)"
           (next)="goTo(v.nextId)"
         />
+        @if (v.diagram; as diagram) {
+          <sdc-diagram-panel class="wizard__diagram" [kind]="diagram.kind" [source]="diagram.source" />
+        }
       </div>
     }
   }

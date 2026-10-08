@@ -1,15 +1,16 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ProjectStore } from '../../app/project-store';
-import { adjacentSteps, stepAnswers } from '../../domain';
+import { adjacentSteps, diagramFor, stepAnswers } from '../../domain';
 import type { AnswerValue } from '../../domain';
+import { DiagramPanelComponent } from '../diagram-panel/diagram-panel.component';
 import { JourneyRailComponent } from '../journey-rail/journey-rail.component';
 import { StepPanelComponent } from '../step-panel/step-panel.component';
 import { StorageNoticeComponent } from '../storage-notice/storage-notice.component';
 
 @Component({
   selector: 'sdc-wizard',
-  imports: [JourneyRailComponent, RouterLink, StepPanelComponent, StorageNoticeComponent],
+  imports: [DiagramPanelComponent, JourneyRailComponent, RouterLink, StepPanelComponent, StorageNoticeComponent],
   templateUrl: './wizard.component.html',
   styleUrl: './wizard.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -33,6 +34,7 @@ export class WizardComponent {
       step,
       answers: stepAnswers(project, step.id),
       entities: project.entities,
+      diagram: step.diagram && { kind: step.diagram, source: diagramFor(project, step.diagram) },
       stepNumber: workflow.steps.indexOf(step) + 1,
       stepCount: workflow.steps.length,
       previousId: previous?.id,

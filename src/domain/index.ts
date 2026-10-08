@@ -1,3 +1,7 @@
+export { diagramDefinitions } from './diagrams/diagram-definitions';
+export { DIAGRAM_KINDS } from './diagrams/diagram.types';
+export type { DiagramDefinition, DiagramKind } from './diagrams/diagram.types';
+export { diagramFor } from './diagrams/diagrams';
 export { emptyEntities, entityLabel, entityOptions, hasFieldContent, isNamed, referenceCandidates } from './entity/entities';
 export { entityDefinitions } from './entity/entity-definitions';
 export { ENTITY_KINDS } from './entity/entity.types';

@@ -1,3 +1,5 @@
+import { DIAGRAM_KINDS } from '../diagrams/diagram.types';
+import type { DiagramKind } from '../diagrams/diagram.types';
 import { entityDefinitions } from '../entity/entity-definitions';
 import { ENTITY_KINDS } from '../entity/entity.types';
 import type { EntityKind } from '../entity/entity.types';
@@ -182,6 +184,49 @@ describe('the questions each step asks', () => {
     );
 
     expect(minimums).toEqual([['architecture-option', 2]]);
+  });
+});
+
+describe('the diagram each step shows', () => {
+  const steps = workflowFor('new-project').steps;
+
+  it('names only diagrams that exist', () => {
+    for (const step of steps) {
+      if (step.diagram !== undefined) {
+        expect(DIAGRAM_KINDS, step.id).toContain(step.diagram);
+      }
+    }
+  });
+
+  it('shows every kind of diagram on at least one step', () => {
+    const shown = new Set(steps.map((step) => step.diagram));
+
+    for (const kind of DIAGRAM_KINDS) {
+      expect(shown, kind).toContain(kind);
+    }
+  });
+
+  it('shows a diagram only once a step at or before it lists something for the diagram to draw', () => {
+    const drawnFrom: Readonly<Record<DiagramKind, readonly EntityKind[]>> = {
+      'system-context': ['actor', 'external-system'],
+      'use-case': ['actor', 'use-case'],
+      'domain-model': ['concept'],
+      module: ['module'],
+      dependency: ['module'],
+      'first-vertical-slice': ['use-case'],
+    };
+
+    steps.forEach((step, index) => {
+      if (step.diagram !== undefined) {
+        const listed = steps
+          .slice(0, index + 1)
+          .flatMap((earlier) => earlier.questions.flatMap((question) => (question.kind === 'entity-list' ? [question.entity] : [])));
+        expect(
+          drawnFrom[step.diagram].some((kind) => listed.includes(kind)),
+          step.id,
+        ).toBe(true);
+      }
+    });
   });
 });
 

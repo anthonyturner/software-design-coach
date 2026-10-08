@@ -1,0 +1,70 @@
+.diagram {
+  display: grid;
+  gap: var(--sdc-space-3);
+  padding: var(--sdc-space-5);
+  background: var(--sdc-color-surface);
+  border: var(--sdc-border-width) solid var(--sdc-color-border);
+  border-radius: var(--sdc-radius-md);
+  box-shadow: var(--sdc-elevation-1);
+
+  &__label {
+    color: var(--sdc-color-accent);
+    font-size: var(--sdc-font-size-xs);
+    letter-spacing: var(--sdc-letter-spacing-caps);
+    text-transform: uppercase;
+  }
+
+  &__figure {
+    display: grid;
+    gap: var(--sdc-space-3);
+    margin: 0;
+  }
+
+  // Mermaid sizes its own drawing to the width it is given; this only keeps a tall one from running off the page.
+  &__canvas {
+    overflow: auto;
+    max-height: 70vh;
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  &__caption {
+    color: var(--sdc-color-text-muted);
+    font-size: var(--sdc-font-size-sm);
+  }
+
+  &__message {
+    color: var(--sdc-color-text-muted);
+
+    &--error {
+      color: var(--sdc-color-warning);
+    }
+  }
+
+  &__reason {
+    display: block;
+    margin-top: var(--sdc-space-2);
+    color: var(--sdc-color-text-muted);
+    font-family: var(--sdc-font-mono);
+    font-size: var(--sdc-font-size-xs);
+    overflow-wrap: anywhere;
+  }
+
+  &__source-toggle {
+    color: var(--sdc-color-accent);
+    cursor: pointer;
+    font-size: var(--sdc-font-size-sm);
+  }
+
+  &__source-text {
+    overflow: auto;
+    margin: var(--sdc-space-2) 0 0;
+    padding: var(--sdc-space-3);
+    background: var(--sdc-color-bg);
+    border: var(--sdc-border-width) solid var(--sdc-color-border);
+    border-radius: var(--sdc-radius-sm);
+    font-size: var(--sdc-font-size-xs);
+  }
+}

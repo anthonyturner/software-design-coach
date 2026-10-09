@@ -7,7 +7,14 @@ import { PROJECT_REPOSITORY } from '../../app/project-repository';
 import { FakeDiagramRenderer } from '../../app/testing/fake-diagram-renderer';
 import { InMemoryProjectRepository } from '../../app/testing/in-memory-project-repository';
 import { createProject, goTo as moveTo, workflowFor } from '../../domain';
+import type { Step } from '../../domain';
 import { WizardComponent } from './wizard.component';
+
+/**
+ * A test that walks every step answers each question one at a time. Measured: 1 to 3 s on its own, and
+ * 5.2 s once with the whole suite running in parallel, which is over vitest's 5 s default.
+ */
+const WALK_TIMEOUT = 15_000;
 
 describe('WizardComponent', () => {
   let repository: InMemoryProjectRepository;
@@ -51,7 +58,48 @@ describe('WizardComponent', () => {
     harness.detectChanges();
   }
 
+  const isShown = (page: HTMLElement, prompt: string): boolean =>
+    [...page.querySelectorAll('label, .field__label, .step__question button')].some((found) => found.textContent?.includes(prompt));
+
+  /** Walks the step to the question with this prompt, using Next as a user would. */
+  async function reveal(prompt: string): Promise<void> {
+    const page = routeElement();
+    while (!isShown(page, prompt)) {
+      const next = [...page.querySelectorAll('.step__nav button')].find((button) => button.textContent?.trim() === 'Next');
+      if (!(next instanceof HTMLElement)) {
+        throw new Error(`No question "${prompt}" on this step`);
+      }
+      await click(next);
+    }
+  }
+
+  /** Steps back through the questions of the step, with Back as a user would, to the one with this prompt. */
+  async function rewindTo(prompt: string): Promise<void> {
+    const page = routeElement();
+    const title = stepTitle(page);
+    while (!isShown(page, prompt)) {
+      await press(page, 'Back');
+      if (stepTitle(page) !== title) {
+        throw new Error(`No question "${prompt}" before this one on the step`);
+      }
+    }
+  }
+
+  /** Leaves the step by its Continue button, answering Next through any questions still to come. */
+  async function advance(page: HTMLElement): Promise<void> {
+    while ([...page.querySelectorAll('.step__nav button')].some((button) => button.textContent?.trim() === 'Next')) {
+      await press(page, 'Next');
+    }
+    await press(page, 'Continue');
+  }
+
+  async function choose(page: HTMLElement, prompt: string, index: number): Promise<void> {
+    await reveal(prompt);
+    await click(radios(page)[index]);
+  }
+
   async function type(scope: ParentNode, label: string, text: string): Promise<void> {
+    await reveal(label);
     const field = fieldLabelled(scope, label);
     field.value = text;
     field.dispatchEvent(new Event('input'));
@@ -149,17 +197,15 @@ describe('WizardComponent', () => {
     configure();
   });
 
-  it('shows the first step with its framing, questions and challenges from the workflow data', async () => {
+  it('shows the first step with its framing, its first question and its challenges from the workflow data', async () => {
     const page = await open('p1');
     const problem = workflowFor('new-project').steps[0];
 
     expect(page.querySelector('.wizard__title')?.textContent).toBe('Reminders');
     expect(stepTitle(page)).toBe('Problem');
     expect(page.querySelector('.step__think')?.textContent).toBe(problem.think);
-    for (const question of problem.questions) {
-      expect(fieldLabelled(page, question.prompt)).toBeTruthy();
-    }
-    expect(page.querySelectorAll('.step__challenges li')).toHaveLength(problem.challenges.length);
+    expect(fieldLabelled(page, problem.questions[0].prompt)).toBeTruthy();
+    expect([...page.querySelectorAll('.step__challenges li')].map((item) => item.textContent)).toEqual([...problem.challenges]);
   });
 
   it('shows Think, Decide, Challenge, Notes and Continue on a step', async () => {
@@ -190,7 +236,7 @@ describe('WizardComponent', () => {
     const page = await open('p1');
 
     await type(page, 'What problem are we solving', 'No-shows cost us chairs');
-    await press(page, 'Continue');
+    await advance(page);
 
     expect(stepTitle(page)).toBe('Users');
     expect(page.textContent).toContain('Step 2 of 19');
@@ -200,13 +246,14 @@ describe('WizardComponent', () => {
     await press(page, 'Back');
 
     expect(stepTitle(page)).toBe('Problem');
+    await rewindTo('What problem are we solving');
     expect(fieldLabelled(page, 'What problem are we solving').value).toBe('No-shows cost us chairs');
   });
 
   it('autosaves answers and the current step, so a reload resumes', async () => {
     const page = await open('p1');
     await type(page, 'What problem are we solving', 'No-shows cost us chairs');
-    await press(page, 'Continue');
+    await advance(page);
     await press(page, 'Add actor');
     await type(page, 'Role', 'Receptionist');
 
@@ -215,20 +262,23 @@ describe('WizardComponent', () => {
     expect(stepTitle(reloaded)).toBe('Users');
     expect(fieldLabelled(reloaded, 'Role').value).toBe('Receptionist');
     await press(reloaded, 'Back');
+    await rewindTo('What problem are we solving');
     expect(fieldLabelled(reloaded, 'What problem are we solving').value).toBe('No-shows cost us chairs');
   });
 
   it('offers no Continue after the last step, and no Back on the first', async () => {
     const page = await open('p1');
-    expect(navButtons(page)).toEqual(['Continue']);
+    expect(navButtons(page)).toEqual(['Next']);
 
     for (let step = 1; step < workflowFor('new-project').steps.length; step++) {
-      await press(page, 'Continue');
+      await advance(page);
     }
 
     expect(stepTitle(page)).toBe('Design Review');
+    expect(navButtons(page)).toEqual(['Back', 'Next']);
+    await reveal('Which earlier answer would you change');
     expect(navButtons(page)).toEqual(['Back']);
-  });
+  }, WALK_TIMEOUT);
 
   it('opens a project at the step it was left on', async () => {
     const saved = moveTo(
@@ -297,6 +347,135 @@ describe('WizardComponent', () => {
 
       expect(document.activeElement?.id).toBe('step-title');
     });
+  });
+
+  describe('one question at a time', () => {
+    const promptsShown = (page: HTMLElement): (string | undefined)[] =>
+      [...page.querySelectorAll('.step__question .field__label')].map((label) => label.textContent?.trim());
+    const position = (page: HTMLElement): string | undefined =>
+      page.querySelector('.step__question-position')?.textContent?.replace(/\s+/g, ' ').trim();
+
+    const [problem, users, goals] = workflowFor('new-project').steps;
+    const place = (step: Step, index: number): string => `Question ${index + 1} of ${step.questions.length}`;
+
+    it('walks the questions of a step, then carries on into the next step at its first question', async () => {
+      const page = await open('p1');
+
+      expect(promptsShown(page)).toEqual([problem.questions[0].prompt]);
+      for (let index = 1; index < problem.questions.length; index++) {
+        await press(page, 'Next');
+      }
+      expect(position(page)).toBe(place(problem, problem.questions.length - 1));
+      expect(navButtons(page)).toEqual(['Back', 'Continue']);
+
+      await press(page, 'Continue');
+
+      expect(stepTitle(page)).toBe('Users');
+      expect(promptsShown(page)).toEqual([users.questions[0].prompt]);
+      expect(position(page)).toBe(place(users, 0));
+    });
+
+    it('goes back through the questions of a step, and from the first lands on the last question of the step before', async () => {
+      const page = await open('p1');
+      await advance(page);
+      await press(page, 'Next');
+      expect(position(page)).toContain(place(users, 1));
+
+      await press(page, 'Back');
+      expect(stepTitle(page)).toBe('Users');
+      expect(position(page)).toBe(place(users, 0));
+
+      await press(page, 'Back');
+      expect(stepTitle(page)).toBe('Problem');
+      expect(promptsShown(page)).toEqual([problem.questions[problem.questions.length - 1].prompt]);
+      expect(position(page)).toBe(place(problem, problem.questions.length - 1));
+    });
+
+    it('opens a step from the journey rail at its first question, whichever way it was last left', async () => {
+      const page = await open('p1');
+      await advance(page);
+      await press(page, 'Back');
+      expect(position(page)).toBe(place(problem, problem.questions.length - 1));
+
+      await goTo(page, 'Users');
+      await press(page, 'Next');
+      await goTo(page, 'Problem');
+
+      expect(position(page)).toBe(place(problem, 0));
+    });
+
+    it('starts the step over when its own entry in the journey rail is chosen again', async () => {
+      const page = await open('p1');
+      await press(page, 'Next');
+      await press(page, 'Next');
+
+      await goTo(page, 'Problem');
+
+      expect(position(page)).toBe(place(problem, 0));
+    });
+
+    it('opens a project saved on a later step at the first question of that step', async () => {
+      await repository.save(
+        moveTo(
+          createProject({ id: 'p2', name: 'Half done', mode: 'new-project', now: '2026-10-08T09:00:00.000Z' }),
+          'goals',
+          '2026-10-08T09:10:00.000Z',
+        ),
+      );
+
+      const page = await open('p2');
+
+      expect(position(page)).toBe(place(goals, 0));
+    });
+
+    it('keeps an answer when the user moves to another question and back', async () => {
+      const page = await open('p1');
+      await type(page, 'What problem are we solving', 'No-shows cost us chairs');
+      await press(page, 'Next');
+      await type(page, 'Who feels it today', 'The desk');
+
+      await press(page, 'Back');
+
+      expect(fieldLabelled(page, 'What problem are we solving').value).toBe('No-shows cost us chairs');
+    });
+
+    it('counts the questions still open across the whole step, not just the one on screen', async () => {
+      const page = await open('p1');
+      await type(page, 'What problem are we solving', 'No-shows cost us chairs');
+
+      await press(page, 'Next');
+
+      expect(page.querySelector('.step__status')?.textContent).toContain('2 required questions are still open');
+    });
+
+    it('moves focus to the question when Next or Back changes it, and to the heading when the step changes', async () => {
+      const page = await open('p1');
+
+      await press(page, 'Next');
+      expect(document.activeElement).toBe(page.querySelector('.step__question'));
+
+      await press(page, 'Back');
+      expect(document.activeElement).toBe(page.querySelector('.step__question'));
+
+      await goTo(page, 'Goals');
+      expect(document.activeElement?.id).toBe('step-title');
+    });
+
+    it('keeps the challenges behind a closed disclosure on every step', async () => {
+      const page = await open('p1');
+      const challenges = (): HTMLDetailsElement | null | undefined =>
+        page.querySelector('.step__challenges')?.closest('details');
+      const seen: (boolean | undefined)[] = [];
+
+      for (let step = 0; step < workflowFor('new-project').steps.length; step++) {
+        seen.push(challenges()?.open);
+        if (step < workflowFor('new-project').steps.length - 1) {
+          await advance(page);
+        }
+      }
+
+      expect(seen).toEqual(workflowFor('new-project').steps.map(() => false));
+    }, WALK_TIMEOUT);
   });
 
   describe('lists of actors, use cases and the rest', () => {
@@ -421,7 +600,7 @@ describe('WizardComponent', () => {
       const page = await open('p1');
       await goTo(page, 'System Boundary');
 
-      await click(radios(page)[1]);
+      await choose(page, 'What kind of thing', 1);
 
       expect(page.querySelector('legend.field__label')?.textContent).toBe('What kind of thing are you building?');
       expect(radios(page).map((option) => option.checked)).toEqual([false, true, false, false, false]);
@@ -431,7 +610,7 @@ describe('WizardComponent', () => {
       const page = await open('p1');
       await twoActors(page);
       await goTo(page, 'System Boundary');
-      await click(radios(page)[1]);
+      await choose(page, 'What kind of thing', 1);
 
       const reloaded = await reload('p1');
       expect(radios(reloaded)[1].checked).toBe(true);
@@ -596,7 +775,7 @@ describe('WizardComponent', () => {
       await option(page, 0, 'Four modules');
       await option(page, 1, 'One module');
       await goTo(page, 'Decision');
-      await click(radios(page)[1]);
+      await choose(page, 'Which option are you choosing', 1);
 
       await goTo(page, 'Architecture Options');
       await type(rows(page)[1], 'Option', 'Single module');
@@ -618,7 +797,7 @@ describe('WizardComponent', () => {
       await type(rows(page)[0], 'Use case', 'Confirm an appointment');
 
       await goTo(page, 'First Vertical Slice');
-      await click(radios(page)[0]);
+      await choose(page, 'Which use case will you build', 0);
 
       expect(chosenRadio(page)).toBe('Confirm an appointment');
     });
@@ -626,6 +805,7 @@ describe('WizardComponent', () => {
 
   describe('the whole workflow', () => {
     async function addRow(page: HTMLElement, noun: string, index: number, label: string, name: string): Promise<void> {
+      await reveal(`Add ${noun}`);
       await press(page, `Add ${noun}`);
       await type(rows(page)[index], label, name);
     }
@@ -642,61 +822,61 @@ describe('WizardComponent', () => {
         ['Who feels it today', 'The desk'],
         ['How will you know', 'Fewer empty chairs'],
       ]);
-      await press(page, 'Continue');
+      await advance(page);
       await addRow(page, 'actor', 0, 'Role', 'Receptionist');
-      await press(page, 'Continue');
+      await advance(page);
       await fill(page, [
         ['What must be true when this succeeds', 'Patients are reminded'],
         ['For each goal, what would you observe', 'No reminder calls'],
       ]);
-      await press(page, 'Continue');
+      await advance(page);
       await fill(page, [['What will this system deliberately not do', 'Online booking']]);
-      await press(page, 'Continue');
+      await advance(page);
       await fill(page, [['What must the system do', 'Send a text the day before']]);
-      await press(page, 'Continue');
+      await advance(page);
       await addRow(page, 'use case', 0, 'Use case', 'Confirm an appointment');
-      await press(page, 'Continue');
+      await advance(page);
       await addRow(page, 'concept', 0, 'Concept', 'Appointment');
-      await press(page, 'Continue');
-      await click(radios(page)[0]);
+      await advance(page);
+      await choose(page, 'What kind of thing', 0);
       await fill(page, [['what is yours to build and own', 'Reminder rules']]);
-      await press(page, 'Continue');
+      await advance(page);
       await addRow(page, 'module', 0, 'Module', 'Reminders');
       await addRow(page, 'module', 1, 'Module', 'Messaging');
-      await press(page, 'Continue');
+      await advance(page);
       await type(rows(page)[0], 'What is it responsible for?', 'Decide when one is due');
-      await press(page, 'Continue');
+      await advance(page);
       await type(rows(page)[1], 'What does it know', 'The provider and its formats');
-      await press(page, 'Continue');
+      await advance(page);
       await type(rows(page)[1], 'What does a caller need', 'send(patient, message)');
-      await press(page, 'Continue');
+      await advance(page);
       await pickReference(rows(page)[0], 'Messaging');
-      await press(page, 'Continue');
+      await advance(page);
       await addRow(page, 'architecture option', 0, 'Option', 'Four modules');
       await addRow(page, 'architecture option', 1, 'Option', 'One module');
       await fill(page, [['How do they compare', 'The first hides more']]);
-      await press(page, 'Continue');
-      await click(radios(page)[0]);
+      await advance(page);
+      await choose(page, 'Which option are you choosing', 0);
       await fill(page, [['Why this one', 'Different reasons to change']]);
-      await press(page, 'Continue');
-      await click(radios(page)[0]);
+      await advance(page);
+      await choose(page, 'Which use case will you build', 0);
       await fill(page, [
         ['Trace it through the modules', 'Reminders asks Messaging to send'],
         ['What will you know after building it', 'Whether the provider can be hidden'],
       ]);
-      await press(page, 'Continue');
+      await advance(page);
       await fill(page, [
         ['What behaviours must the first slice show', 'A reminder is sent a day before'],
         ['first test you will write', 'dueReminders returns one reminder'],
       ]);
-      await press(page, 'Continue');
+      await advance(page);
       await fill(page, [['What are the steps, in order', 'Reminders first, with a fake schedule']]);
-      await press(page, 'Continue');
+      await advance(page);
       await fill(page, [
         ['least sure about', 'Reminders may do too much'],
         ['biggest risks', 'The provider reply format'],
       ]);
-      await click(radios(page)[1]);
+      await choose(page, 'Is this design ready', 1);
     }
 
     it('can be completed from the first step to the last, every step ending up done', async () => {
@@ -706,6 +886,7 @@ describe('WizardComponent', () => {
 
       expect(stepTitle(page)).toBe('Design Review');
       expect(page.textContent).toContain('Step 19 of 19');
+      await reveal('Which earlier answer would you change');
       expect(navButtons(page)).toEqual(['Back']);
       const states = [...page.querySelectorAll('.rail__step')].map(
         (step) => step.querySelector('.rail__state')?.textContent ?? '',
@@ -713,7 +894,7 @@ describe('WizardComponent', () => {
       expect(states).toHaveLength(19);
       expect(states.slice(0, 18).every((state) => state === ', done')).toBe(true);
       expect(page.querySelector('.step__status')?.textContent).toBe('Every required question on this step is answered.');
-    });
+    }, WALK_TIMEOUT);
 
     it('is all still there after a reload', async () => {
       const page = await open('p1');
@@ -722,12 +903,13 @@ describe('WizardComponent', () => {
       const reloaded = await reload('p1');
 
       expect(stepTitle(reloaded)).toBe('Design Review');
+      await reveal('Is this design ready');
       expect(chosenRadio(reloaded)).toContain('with the risks above');
       await goTo(reloaded, 'Dependencies');
       expect(references(rows(reloaded)[0])).toEqual([{ label: 'Messaging', checked: true }]);
       await goTo(reloaded, 'Decision');
       expect(chosenRadio(reloaded)).toBe('Four modules');
-    });
+    }, WALK_TIMEOUT);
   });
 
   describe('saying that nothing needs listing, and the small things around it', () => {
@@ -1107,17 +1289,17 @@ describe('WizardComponent', () => {
       for (let step = 0; step < workflowFor('new-project').steps.length; step++) {
         seen.push(notesArea(page)?.open);
         if (step < workflowFor('new-project').steps.length - 1) {
-          await press(page, 'Continue');
+          await advance(page);
         }
       }
 
       expect(seen).toEqual(workflowFor('new-project').steps.map(() => false));
-    });
+    }, WALK_TIMEOUT);
 
     it('keeps what is typed against the step it was typed on, through a reload', async () => {
       const page = await open('p1');
       await type(page, 'Your notes on this step', 'Ask the clinic owner about no-shows');
-      await press(page, 'Continue');
+      await advance(page);
       await type(page, 'Your notes on this step', 'Who else is affected?');
       await press(page, 'Back');
 
@@ -1126,7 +1308,7 @@ describe('WizardComponent', () => {
       expect(stepTitle(reloaded)).toBe('Problem');
       expect(notesArea(reloaded)?.open).toBe(true);
       expect(fieldLabelled(reloaded, 'Your notes on this step').value).toBe('Ask the clinic owner about no-shows');
-      await press(reloaded, 'Continue');
+      await advance(reloaded);
       expect(fieldLabelled(reloaded, 'Your notes on this step').value).toBe('Who else is affected?');
     });
 
@@ -1134,7 +1316,7 @@ describe('WizardComponent', () => {
       const page = await open('p1');
       await type(page, 'Your notes on this step', 'A note');
 
-      await press(page, 'Continue');
+      await advance(page);
       expect(notesArea(page)?.open).toBe(false);
 
       await press(page, 'Back');
@@ -1144,7 +1326,7 @@ describe('WizardComponent', () => {
     it('is not an answer: it does not count towards a step being done', async () => {
       const page = await open('p1');
       await type(page, 'Your notes on this step', 'A note');
-      await press(page, 'Continue');
+      await advance(page);
 
       expect(railState(page, 'Problem')).toBe(', not started');
     });
@@ -1251,6 +1433,7 @@ describe('WizardComponent', () => {
     const caption = (page: HTMLElement): string | null | undefined => panel(page)?.querySelector('.diagram__caption')?.textContent;
 
     async function addRow(page: HTMLElement, noun: string, index: number, label: string, name: string): Promise<void> {
+      await reveal(`Add ${noun}`);
       await press(page, `Add ${noun}`);
       await type(rows(page)[index], label, name);
     }
@@ -1263,59 +1446,59 @@ describe('WizardComponent', () => {
 
     async function walk(page: HTMLElement): Promise<void> {
       await fill(page, [['What is changing', 'A patient can cancel by replying CANCEL']]);
-      await click(radios(page)[0]);
-      await press(page, 'Continue');
+      await choose(page, 'What kind of change', 0);
+      await advance(page);
       await fill(page, [
         ['Who benefits', 'The desk stops phoning'],
         ['What happens if you do not make this change', 'The calls carry on'],
       ]);
-      await press(page, 'Continue');
+      await advance(page);
       await fill(page, [['What does the system do today', 'Texts a reminder and reads yes']]);
       await addRow(page, 'actor', 0, 'Role', 'Patient');
       await fill(page, [['What must keep working', 'A yes still confirms']]);
-      await press(page, 'Continue');
+      await advance(page);
       await addRow(page, 'use case', 0, 'Use case', 'Patient cancels by text');
       await pickReference(rows(page)[0], 'Patient');
-      await press(page, 'Continue');
+      await advance(page);
       await addRow(page, 'concept', 0, 'Concept', 'Appointment');
       await fill(page, [['Which of these change meaning', 'Appointment can now be cancelled']]);
-      await press(page, 'Continue');
+      await advance(page);
       await addRow(page, 'module', 0, 'Module', 'Reminders');
       await addRow(page, 'module', 1, 'Module', 'Messaging');
       await type(rows(page)[1], 'What does it know', 'The provider and its formats');
       await fill(page, [['known by more than one module', 'What a yes means']]);
-      await press(page, 'Continue');
+      await advance(page);
       await pickReference(rows(page)[0], 'Messaging');
       await fill(page, [['Which modules have to change', 'Reminders inside, Scheduling at its interface']]);
-      await press(page, 'Continue');
+      await advance(page);
       await fill(page, [['would you have to edit', 'Messaging and Reminders']]);
-      await click(radios(page)[1]);
-      await press(page, 'Continue');
+      await choose(page, 'where would that knowledge live', 1);
+      await advance(page);
       await addRow(page, 'architecture option', 0, 'Option', 'Interpret in Reminders');
       await addRow(page, 'architecture option', 1, 'Option', 'Extend Messaging');
       await fill(page, [['How do they compare', 'The first hides more']]);
-      await press(page, 'Continue');
-      await click(radios(page)[0]);
+      await advance(page);
+      await choose(page, 'Which option are you recommending', 0);
       await fill(page, [['Why this one', 'Reminders owns the rules']]);
-      await press(page, 'Continue');
+      await advance(page);
       await fill(page, [
         ['How will you pin down', 'Characterise the yes reply first'],
         ['first test of the new behaviour', 'handleReply cancels the appointment'],
       ]);
-      await press(page, 'Continue');
-      await click(radios(page)[0]);
+      await advance(page);
+      await choose(page, 'Which desired behaviour will you deliver first', 0);
       await fill(page, [
         ['Trace it through the modules', 'Messaging hands the reply to Reminders'],
         ['How will you keep it safe', 'Behind a setting that is off'],
       ]);
-      await press(page, 'Continue');
+      await advance(page);
       await fill(page, [
         ['reshape first', 'Move the yes handling into Reminders'],
         ['leave behind', 'The keyword list in Messaging'],
       ]);
-      await press(page, 'Continue');
+      await advance(page);
       await fill(page, [['least sure about', 'Reminders may grow']]);
-      await click(radios(page)[1]);
+      await choose(page, 'Is this change ready', 1);
     }
 
     beforeEach(async () => {
@@ -1337,8 +1520,8 @@ describe('WizardComponent', () => {
     it('walks a few steps, and resumes where it was left after a reload', async () => {
       const page = await open('f1');
       await type(page, 'What is changing', 'A patient can cancel by replying CANCEL');
-      await click(radios(page)[0]);
-      await press(page, 'Continue');
+      await choose(page, 'What kind of change', 0);
+      await advance(page);
       await type(page, 'Who benefits', 'The desk stops phoning');
       await goTo(page, 'Current Ownership');
       await addRow(page, 'module', 0, 'Module', 'Reminders');
@@ -1352,6 +1535,7 @@ describe('WizardComponent', () => {
       expect(fieldLabelled(reloaded, 'Who benefits').value).toBe('The desk stops phoning');
       await goTo(reloaded, 'Change');
       expect(fieldLabelled(reloaded, 'What is changing').value).toBe('A patient can cancel by replying CANCEL');
+      await reveal('What kind of change');
       expect(chosenRadio(reloaded)).toContain('New');
     });
 
@@ -1389,7 +1573,7 @@ describe('WizardComponent', () => {
       expect(caption(page)).toBe('First vertical slice');
       expect(panel(page)?.textContent).toContain('Choose the use case to build first');
 
-      await click(radios(page)[0]);
+      await choose(page, 'Which desired behaviour will you deliver first', 0);
       await settle();
 
       const source = diagrams.drawings.at(-1)?.source ?? '';
@@ -1404,6 +1588,7 @@ describe('WizardComponent', () => {
 
       expect(stepTitle(page)).toBe('Review');
       expect(page.textContent).toContain('Step 14 of 14');
+      await reveal('What should be refactored');
       expect(navButtons(page)).toEqual(['Back']);
       const states = [...page.querySelectorAll('.rail__step')].map(
         (step) => step.querySelector('.rail__state')?.textContent ?? '',
@@ -1411,7 +1596,7 @@ describe('WizardComponent', () => {
       expect(states).toHaveLength(14);
       expect(states.slice(0, 13).every((state) => state === ', done')).toBe(true);
       expect(page.querySelector('.step__status')?.textContent).toBe('Every required question on this step is answered.');
-    });
+    }, WALK_TIMEOUT);
 
     it('is all still there after a reload', async () => {
       const page = await open('f1');
@@ -1424,6 +1609,6 @@ describe('WizardComponent', () => {
       expect(chosenRadio(reloaded)).toBe('Interpret in Reminders');
       await goTo(reloaded, 'Architecture Impact');
       expect(references(rows(reloaded)[0])).toEqual([{ label: 'Messaging', checked: true }]);
-    });
+    }, WALK_TIMEOUT);
   });
 });

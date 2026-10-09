@@ -1,6 +1,6 @@
 .step {
   display: grid;
-  gap: var(--sdc-space-5);
+  gap: var(--sdc-space-4);
   padding: var(--sdc-space-5);
   background: var(--sdc-color-surface);
   border: var(--sdc-border-width) solid var(--sdc-color-border);
@@ -33,7 +33,7 @@
   }
 
   &__label {
-    color: var(--sdc-color-accent);
+    color: var(--sdc-color-text-muted);
     font-size: var(--sdc-font-size-xs);
     letter-spacing: var(--sdc-letter-spacing-caps);
     text-transform: uppercase;
@@ -44,15 +44,42 @@
     font-size: var(--sdc-font-size-lg);
   }
 
-  &__fields {
+  &__question {
     display: grid;
-    gap: var(--sdc-space-5);
+    gap: var(--sdc-space-3);
+
+    &:focus {
+      outline: none;
+    }
+
+    &:focus-visible {
+      outline: var(--sdc-focus-ring-width) solid var(--sdc-color-focus);
+      outline-offset: var(--sdc-space-2);
+    }
+  }
+
+  &__question-position {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sdc-space-3);
+    color: var(--sdc-color-text-muted);
+    font-size: var(--sdc-font-size-sm);
+  }
+
+  &__optional {
+    padding: 0 var(--sdc-space-2);
+    border: var(--sdc-border-width) solid var(--sdc-color-border);
+    border-radius: var(--sdc-radius-sm);
+    font-size: var(--sdc-font-size-xs);
+    letter-spacing: var(--sdc-letter-spacing-caps);
+    text-transform: uppercase;
   }
 
   &__challenges {
     display: grid;
     gap: var(--sdc-space-2);
-    margin: 0;
+    margin: var(--sdc-space-3) 0 0;
     padding-left: var(--sdc-space-5);
     color: var(--sdc-color-text-muted);
   }

@@ -15,8 +15,16 @@
 
   <section class="step__section" aria-labelledby="step-decide">
     <h4 class="step__label" id="step-decide">Decide</h4>
-    <div class="step__fields">
-      @for (field of fields(); track field.key) {
+    <div #question class="step__question" role="group" tabindex="-1" [attr.aria-label]="current().label">
+      @if (current().position || current().optional) {
+        <p class="step__question-position">
+          {{ current().position }}
+          @if (current().optional) {
+            <span class="step__optional">Optional</span>
+          }
+        </p>
+      }
+      @for (field of shownFields(); track field.key) {
         @if (field.type === 'entities') {
           <sdc-entity-list
             [question]="field.question"
@@ -55,11 +63,14 @@
 
   <section class="step__section" aria-labelledby="step-challenge">
     <h4 class="step__label" id="step-challenge">Challenge</h4>
-    <ul class="step__challenges">
-      @for (challenge of step().challenges; track $index) {
-        <li>{{ challenge }}</li>
-      }
-    </ul>
+    <details class="step__disclosure">
+      <summary class="step__disclosure-toggle">Challenge my thinking</summary>
+      <ul class="step__challenges">
+        @for (challenge of step().challenges; track $index) {
+          <li>{{ challenge }}</li>
+        }
+      </ul>
+    </details>
   </section>
 
   <section class="step__section" aria-labelledby="step-notes">
@@ -71,11 +82,13 @@
     <h4 class="step__label" id="step-continue">Continue</h4>
     <p class="step__status">{{ status() }}</p>
     <div class="step__nav">
-      @if (canGoBack()) {
-        <button type="button" class="button" (click)="back.emit()">Back</button>
+      @if (current().hasPrevious || canGoBack()) {
+        <button type="button" class="button" (click)="goBack()">Back</button>
       }
-      @if (canContinue()) {
-        <button type="button" class="button button--primary" (click)="next.emit()">Continue</button>
+      @if (current().hasNext) {
+        <button type="button" class="button button--primary" (click)="goForward()">Next</button>
+      } @else if (canContinue()) {
+        <button type="button" class="button button--primary" (click)="goForward()">Continue</button>
       } @else {
         <p class="step__end">That is the last step. Your answers are saved as you type.</p>
       }

@@ -1,4 +1,18 @@
-import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, input, output, untracked, viewChild } from '@angular/core';
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  ElementRef,
+  inject,
+  Injector,
+  input,
+  linkedSignal,
+  output,
+  untracked,
+  viewChild,
+} from '@angular/core';
 import { entityDefinitions, entityOptions } from '../../domain';
 import type {
   AnswerValue,
@@ -60,7 +74,12 @@ export class StepPanelComponent {
   readonly next = output<void>();
 
   private readonly heading = viewChild.required<ElementRef<HTMLElement>>('heading');
-  private shownStepId: string | undefined;
+  private readonly question = viewChild.required<ElementRef<HTMLElement>>('question');
+  private readonly injector = inject(Injector);
+  private shown: { readonly stepId: string; readonly index: number } | undefined;
+
+  /** Which question of the step is on screen; opening any step, by Continue, Back or the journey rail, starts at its first. */
+  private readonly questionIndex = linkedSignal<string, number>({ source: () => this.step().id, computation: () => 0 });
 
   protected readonly fields = computed<readonly Field[]>(() =>
     this.step().questions.map((question): Field => {
@@ -87,6 +106,25 @@ export class StepPanelComponent {
     }),
   );
 
+  protected readonly current = computed(() => {
+    const fields = this.fields();
+    const index = Math.min(this.questionIndex(), fields.length - 1);
+    const field = fields[index];
+    const position = fields.length > 1 ? `Question ${index + 1} of ${fields.length}` : undefined;
+    const optional = field.question.optional === true;
+    return {
+      field,
+      position,
+      optional,
+      label: [position, field.question.prompt, optional ? 'optional' : undefined].filter(Boolean).join(', '),
+      hasPrevious: index > 0,
+      hasNext: index < fields.length - 1,
+    };
+  });
+
+  /** The one field on screen, as a list so the field is rebuilt for each question rather than reused with new inputs. */
+  protected readonly shownFields = computed(() => [this.current().field]);
+
   protected readonly status = computed(() => {
     const open = this.openCount();
     if (open === 0) {
@@ -97,15 +135,36 @@ export class StepPanelComponent {
   });
 
   constructor() {
-    // The step changes in place, so focus moves to its heading to tell keyboard and screen-reader users.
+    // The step and the question change in place, so focus moves to the step heading or to the question, to tell keyboard and screen-reader users.
     effect(() => {
-      const id = this.step().id;
+      const stepId = this.step().id;
+      const index = this.questionIndex();
       untracked(() => {
-        if (this.shownStepId !== undefined && this.shownStepId !== id) {
+        const before = this.shown;
+        if (before && before.stepId !== stepId) {
           this.heading().nativeElement.focus();
+        } else if (before && before.index !== index) {
+          // After the render, so the group is announced with the new question's label rather than the old one.
+          afterNextRender(() => this.question().nativeElement.focus(), { injector: this.injector });
         }
-        this.shownStepId = id;
+        this.shown = { stepId, index };
       });
     });
+  }
+
+  protected goBack(): void {
+    if (this.current().hasPrevious) {
+      this.questionIndex.update((index) => index - 1);
+    } else {
+      this.back.emit();
+    }
+  }
+
+  protected goForward(): void {
+    if (this.current().hasNext) {
+      this.questionIndex.update((index) => index + 1);
+    } else {
+      this.next.emit();
+    }
   }
 }

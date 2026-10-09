@@ -8,6 +8,7 @@ import { JourneyRailComponent } from '../journey-rail/journey-rail.component';
 import { ModuleDrawerComponent } from '../module-drawer/module-drawer.component';
 import { OpenStateMessageComponent } from '../open-state-message/open-state-message.component';
 import { StepPanelComponent } from '../step-panel/step-panel.component';
+import type { Arrival } from '../step-panel/step-panel.component';
 import { StorageNoticeComponent } from '../storage-notice/storage-notice.component';
 
 interface DiagramView {
@@ -67,6 +68,9 @@ export class WizardComponent {
     };
   });
 
+  /** Where the step panel opens the step it is given; each navigation is a new arrival, so the step already shown starts over too. */
+  protected readonly arrival = signal<Arrival>({ entry: 'first', visit: 0 });
+
   private readonly openModuleId = signal<string | undefined>(undefined);
   private readonly panel = viewChild(DiagramPanelComponent);
   private readonly side = viewChild<ElementRef<HTMLElement>>('side');
@@ -123,7 +127,17 @@ export class WizardComponent {
   }
 
   protected goTo(stepId: string | undefined): void {
+    this.arriveAt(stepId, 'first');
+  }
+
+  /** Back from a step's first question lands on the last question of the step before, where the user left off in that direction. */
+  protected goBack(stepId: string | undefined): void {
+    this.arriveAt(stepId, 'last');
+  }
+
+  private arriveAt(stepId: string | undefined, entry: Arrival['entry']): void {
     if (stepId) {
+      this.arrival.update(({ visit }) => ({ entry, visit: visit + 1 }));
       this.store.goTo(stepId);
     }
   }

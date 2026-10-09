@@ -7,10 +7,14 @@ import { PROJECT_REPOSITORY } from '../../app/project-repository';
 import { FakeDiagramRenderer } from '../../app/testing/fake-diagram-renderer';
 import { InMemoryProjectRepository } from '../../app/testing/in-memory-project-repository';
 import { createProject, goTo as moveTo, workflowFor } from '../../domain';
+import type { Step } from '../../domain';
 import { WizardComponent } from './wizard.component';
 
-/** Walking a whole workflow answers every question one at a time, which takes longer than the default when the suite runs in parallel. */
-const WALK_TIMEOUT = 30_000;
+/**
+ * A test that walks every step answers each question one at a time. Measured: 1 to 3 s on its own, and
+ * 5.2 s once with the whole suite running in parallel, which is over vitest's 5 s default.
+ */
+const WALK_TIMEOUT = 15_000;
 
 describe('WizardComponent', () => {
   let repository: InMemoryProjectRepository;
@@ -66,6 +70,18 @@ describe('WizardComponent', () => {
         throw new Error(`No question "${prompt}" on this step`);
       }
       await click(next);
+    }
+  }
+
+  /** Steps back through the questions of the step, with Back as a user would, to the one with this prompt. */
+  async function rewindTo(prompt: string): Promise<void> {
+    const page = routeElement();
+    const title = stepTitle(page);
+    while (!isShown(page, prompt)) {
+      await press(page, 'Back');
+      if (stepTitle(page) !== title) {
+        throw new Error(`No question "${prompt}" before this one on the step`);
+      }
     }
   }
 
@@ -230,6 +246,7 @@ describe('WizardComponent', () => {
     await press(page, 'Back');
 
     expect(stepTitle(page)).toBe('Problem');
+    await rewindTo('What problem are we solving');
     expect(fieldLabelled(page, 'What problem are we solving').value).toBe('No-shows cost us chairs');
   });
 
@@ -245,6 +262,7 @@ describe('WizardComponent', () => {
     expect(stepTitle(reloaded)).toBe('Users');
     expect(fieldLabelled(reloaded, 'Role').value).toBe('Receptionist');
     await press(reloaded, 'Back');
+    await rewindTo('What problem are we solving');
     expect(fieldLabelled(reloaded, 'What problem are we solving').value).toBe('No-shows cost us chairs');
   });
 
@@ -260,7 +278,7 @@ describe('WizardComponent', () => {
     expect(navButtons(page)).toEqual(['Back', 'Next']);
     await reveal('Which earlier answer would you change');
     expect(navButtons(page)).toEqual(['Back']);
-  });
+  }, WALK_TIMEOUT);
 
   it('opens a project at the step it was left on', async () => {
     const saved = moveTo(
@@ -337,35 +355,63 @@ describe('WizardComponent', () => {
     const position = (page: HTMLElement): string | undefined =>
       page.querySelector('.step__question-position')?.textContent?.replace(/\s+/g, ' ').trim();
 
-    it('walks the questions of a step, then carries on into the next step, and Back returns the same way', async () => {
+    const [problem, users, goals] = workflowFor('new-project').steps;
+    const place = (step: Step, index: number): string => `Question ${index + 1} of ${step.questions.length}`;
+
+    it('walks the questions of a step, then carries on into the next step at its first question', async () => {
       const page = await open('p1');
-      const [problem, users] = workflowFor('new-project').steps;
 
       expect(promptsShown(page)).toEqual([problem.questions[0].prompt]);
-      await press(page, 'Next');
-      await press(page, 'Next');
-      expect(position(page)).toBe('Question 3 of 3');
+      for (let index = 1; index < problem.questions.length; index++) {
+        await press(page, 'Next');
+      }
+      expect(position(page)).toBe(place(problem, problem.questions.length - 1));
       expect(navButtons(page)).toEqual(['Back', 'Continue']);
 
       await press(page, 'Continue');
+
       expect(stepTitle(page)).toBe('Users');
       expect(promptsShown(page)).toEqual([users.questions[0].prompt]);
-      expect(position(page)).toBe('Question 1 of 2');
+      expect(position(page)).toBe(place(users, 0));
+    });
+
+    it('goes back through the questions of a step, and from the first lands on the last question of the step before', async () => {
+      const page = await open('p1');
+      await advance(page);
+      await press(page, 'Next');
+      expect(position(page)).toContain(place(users, 1));
+
+      await press(page, 'Back');
+      expect(stepTitle(page)).toBe('Users');
+      expect(position(page)).toBe(place(users, 0));
 
       await press(page, 'Back');
       expect(stepTitle(page)).toBe('Problem');
-      expect(position(page)).toBe('Question 1 of 3');
+      expect(promptsShown(page)).toEqual([problem.questions[problem.questions.length - 1].prompt]);
+      expect(position(page)).toBe(place(problem, problem.questions.length - 1));
     });
 
-    it('opens a step from the journey rail at its first question', async () => {
+    it('opens a step from the journey rail at its first question, whichever way it was last left', async () => {
+      const page = await open('p1');
+      await advance(page);
+      await press(page, 'Back');
+      expect(position(page)).toBe(place(problem, problem.questions.length - 1));
+
+      await goTo(page, 'Users');
+      await press(page, 'Next');
+      await goTo(page, 'Problem');
+
+      expect(position(page)).toBe(place(problem, 0));
+    });
+
+    it('starts the step over when its own entry in the journey rail is chosen again', async () => {
       const page = await open('p1');
       await press(page, 'Next');
-      await goTo(page, 'Users');
       await press(page, 'Next');
 
       await goTo(page, 'Problem');
 
-      expect(position(page)).toBe('Question 1 of 3');
+      expect(position(page)).toBe(place(problem, 0));
     });
 
     it('opens a project saved on a later step at the first question of that step', async () => {
@@ -379,7 +425,7 @@ describe('WizardComponent', () => {
 
       const page = await open('p2');
 
-      expect(position(page)).toBe('Question 1 of 3');
+      expect(position(page)).toBe(place(goals, 0));
     });
 
     it('keeps an answer when the user moves to another question and back', async () => {
@@ -429,7 +475,7 @@ describe('WizardComponent', () => {
       }
 
       expect(seen).toEqual(workflowFor('new-project').steps.map(() => false));
-    });
+    }, WALK_TIMEOUT);
   });
 
   describe('lists of actors, use cases and the rest', () => {
@@ -1248,7 +1294,7 @@ describe('WizardComponent', () => {
       }
 
       expect(seen).toEqual(workflowFor('new-project').steps.map(() => false));
-    });
+    }, WALK_TIMEOUT);
 
     it('keeps what is typed against the step it was typed on, through a reload', async () => {
       const page = await open('p1');

@@ -20,10 +20,11 @@
           [openCount]="store.openQuestionCount()"
           [canGoBack]="v.previousId !== undefined"
           [canContinue]="v.nextId !== undefined"
+          [arrival]="arrival()"
           (answered)="answer($event)"
           (noted)="store.setNote(v.step.id, $event)"
           (entityChanged)="store.changeEntities($event.entity, $event.change)"
-          (back)="goTo(v.previousId)"
+          (back)="goBack(v.previousId)"
           (next)="goTo(v.nextId)"
         />
         @if (v.diagram; as diagram) {

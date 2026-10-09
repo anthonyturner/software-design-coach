@@ -22,4 +22,4 @@ How to add an entry: [docs/changelog.md](docs/changelog.md).
 
 ### Changed
 
-- Each step now asks one question at a time, with "Question 2 of 4" and an Optional mark where it applies. Next moves to the step's next question, Continue on the last one goes on to the next step, and Back on the first question goes to the previous step. Moving between questions moves focus to the new question. The challenges are tucked behind a "Challenge my thinking" disclosure, closed by default, so the page reads lighter. Your answers, notes and saved projects are unchanged ([#30](https://github.com/anthonyturner/software-design-coach/pull/30)).
+- Each step now asks one question at a time, with Next and Back to move between them, and the challenges sit behind a "Challenge my thinking" disclosure ([#30](https://github.com/anthonyturner/software-design-coach/pull/30)).

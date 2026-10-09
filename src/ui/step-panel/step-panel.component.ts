@@ -32,6 +32,12 @@ import { EntityFieldsComponent } from '../entity-fields/entity-fields.component'
 import { EntityListComponent } from '../entity-list/entity-list.component';
 import { NoteFieldComponent } from '../note-field/note-field.component';
 
+/** How the wizard brought the user to the step: the question to open, and a fresh `visit` each time so that arriving at the step already shown still starts over. */
+export interface Arrival {
+  readonly entry: 'first' | 'last';
+  readonly visit: number;
+}
+
 type Field =
   | { readonly type: 'entities'; readonly key: string; readonly question: EntityListQuestion }
   | {
@@ -66,6 +72,7 @@ export class StepPanelComponent {
   readonly openCount = input.required<number>();
   readonly canGoBack = input.required<boolean>();
   readonly canContinue = input.required<boolean>();
+  readonly arrival = input<Arrival>({ entry: 'first', visit: 0 });
 
   readonly noted = output<string>();
   readonly answered = output<{ readonly questionId: string; readonly value: AnswerValue }>();
@@ -78,8 +85,11 @@ export class StepPanelComponent {
   private readonly injector = inject(Injector);
   private shown: { readonly stepId: string; readonly index: number } | undefined;
 
-  /** Which question of the step is on screen; opening any step, by Continue, Back or the journey rail, starts at its first. */
-  private readonly questionIndex = linkedSignal<string, number>({ source: () => this.step().id, computation: () => 0 });
+  /** Which question of the step is on screen. Every arrival, even at the step already shown, starts it over at the question the arrival names. */
+  private readonly questionIndex = linkedSignal<{ step: Step; arrival: Arrival }, number>({
+    source: () => ({ step: this.step(), arrival: this.arrival() }),
+    computation: ({ step, arrival }) => (arrival.entry === 'last' ? step.questions.length - 1 : 0),
+  });
 
   protected readonly fields = computed<readonly Field[]>(() =>
     this.step().questions.map((question): Field => {
@@ -109,6 +119,7 @@ export class StepPanelComponent {
   protected readonly current = computed(() => {
     const fields = this.fields();
     const index = Math.min(this.questionIndex(), fields.length - 1);
+    // A step always has a question: workflow.spec.ts requires at least one.
     const field = fields[index];
     const position = fields.length > 1 ? `Question ${index + 1} of ${fields.length}` : undefined;
     const optional = field.question.optional === true;

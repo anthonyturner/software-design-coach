@@ -6,6 +6,8 @@ import { StepPanelComponent } from './step-panel.component';
 
 const [problem, users] = workflowFor('new-project').steps;
 
+const place = (step: Step, index: number): string => `Question ${index + 1} of ${step.questions.length}`;
+
 const solo: Step = {
   id: 'solo',
   title: 'Solo',
@@ -79,7 +81,7 @@ describe('StepPanelComponent', () => {
       render(problem);
 
       expect(prompts()).toEqual([problem.questions[0].prompt]);
-      expect(position()).toBe('Question 1 of 3');
+      expect(position()).toBe(place(problem, 0));
       expect(buttons()).toEqual(['Back', 'Next']);
     });
 
@@ -88,7 +90,7 @@ describe('StepPanelComponent', () => {
 
       await press('Next');
       expect(prompts()).toEqual([problem.questions[1].prompt]);
-      expect(position()).toBe('Question 2 of 3');
+      expect(position()).toBe(place(problem, 1));
 
       await press('Back');
       expect(prompts()).toEqual([problem.questions[0].prompt]);
@@ -101,7 +103,7 @@ describe('StepPanelComponent', () => {
       await press('Next');
 
       expect(prompts()).toEqual([problem.questions[2].prompt]);
-      expect(position()).toBe('Question 3 of 3');
+      expect(position()).toBe(place(problem, 2));
       expect(buttons()).toEqual(['Back', 'Continue']);
 
       await press('Continue');
@@ -139,7 +141,7 @@ describe('StepPanelComponent', () => {
       await press('Next');
 
       expect(prompts()).toEqual([users.questions[1].prompt]);
-      expect(position()).toBe('Question 2 of 2 Optional');
+      expect(position()).toBe(`${place(users, 1)} Optional`);
       expect(page().querySelector('.step__optional')?.textContent).toBe('Optional');
     });
 
@@ -161,7 +163,7 @@ describe('StepPanelComponent', () => {
       await show(users);
 
       expect(prompts()).toEqual([users.questions[0].prompt]);
-      expect(position()).toBe('Question 1 of 2');
+      expect(position()).toBe(place(users, 0));
     });
 
     it('goes back to the first question when a step is opened again', async () => {
@@ -173,6 +175,36 @@ describe('StepPanelComponent', () => {
       await show(problem);
 
       expect(prompts()).toEqual([problem.questions[0].prompt]);
+    });
+  });
+
+  describe('arriving at a step', () => {
+    const arrive = async (entry: 'first' | 'last', visit: number): Promise<void> => {
+      fixture.componentRef.setInput('arrival', { entry, visit });
+      await settle();
+    };
+
+    it('opens on the last question when the arrival says so, and on the first otherwise', async () => {
+      render(problem);
+
+      await show(users);
+      await arrive('last', 1);
+      expect(prompts()).toEqual([users.questions[users.questions.length - 1].prompt]);
+
+      await show(problem);
+      await arrive('first', 2);
+      expect(prompts()).toEqual([problem.questions[0].prompt]);
+    });
+
+    it('starts the step over when the user arrives at the step already shown', async () => {
+      render(problem);
+      await press('Next');
+      await press('Next');
+
+      await arrive('first', 1);
+
+      expect(prompts()).toEqual([problem.questions[0].prompt]);
+      expect(document.activeElement).toBe(question());
     });
   });
 
@@ -227,12 +259,12 @@ describe('StepPanelComponent', () => {
 
       expect(document.activeElement).toBe(question());
       expect(question().getAttribute('role')).toBe('group');
-      expect(question().getAttribute('aria-label')).toBe(`Question 2 of 3, ${problem.questions[1].prompt}`);
+      expect(question().getAttribute('aria-label')).toBe(`${place(problem, 1)}, ${problem.questions[1].prompt}`);
 
       await press('Back');
 
       expect(document.activeElement).toBe(question());
-      expect(question().getAttribute('aria-label')).toBe(`Question 1 of 3, ${problem.questions[0].prompt}`);
+      expect(question().getAttribute('aria-label')).toBe(`${place(problem, 0)}, ${problem.questions[0].prompt}`);
     });
 
     it('includes the optional mark in the name of an optional question', async () => {
@@ -240,7 +272,7 @@ describe('StepPanelComponent', () => {
 
       await press('Next');
 
-      expect(question().getAttribute('aria-label')).toBe(`Question 2 of 2, ${users.questions[1].prompt}, optional`);
+      expect(question().getAttribute('aria-label')).toBe(`${place(users, 1)}, ${users.questions[1].prompt}, optional`);
     });
 
     it('moves to the step heading, not the question, when the step changes', async () => {
